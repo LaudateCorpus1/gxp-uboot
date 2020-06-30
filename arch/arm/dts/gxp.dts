@@ -1,0 +1,65 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * GXP Device Tree
+ *
+ * (C) Copyright 2019 Hewlett Packard Enterprise Development LP.
+ * Author: Gilbert Chen <gilbert.chen@hpe.com>
+ */
+
+/dts-v1/;
+/ {
+  #address-cells = <1>;
+  #size-cells = <1>;
+  compatible = "HPE,GXP";
+  model = "GXP";
+
+  chosen {
+    u-boot,dm-pre-reloc;
+    bootargs = "earlyprintk console=ttyS0,115200 user_debug=31";
+    stdout-path = &uartc;
+  };
+
+  aliases {
+    serial0 = &uartc;
+    spi0 = &spi0;
+  };
+
+  ahb@80000000 {
+    compatible = "simple-bus";
+    #address-cells = <1>;
+    #size-cells = <1>;
+    reg = <0x80000000 0x4f000000>;
+    ranges;
+
+    timer: timer@c0000098 {
+      compatible = "hpe,gxp-timer";
+      reg = <0xc0000098 0x08>;
+      clock-frequency = <1000000>;
+      u-boot,dm-pre-reloc;
+    };
+
+    uartc: serial@c00000f0 {
+      compatible = "ns16550a";
+      reg = <0xc00000f0 0x8>;
+      clock-frequency = <1846153>;
+      reg-shift = <0>;
+      no-loopback-test;
+      status = "okay";
+      u-boot,dm-pre-reloc;
+    };
+
+    spi0: spi@c0000200 {
+      reg = <0xc0000200 0x80>;
+      #address-cells = <1>;
+      #size-cells = <0>;
+      compatible = "hpe,gxp-spi";
+      status = "okay";
+      u-boot,dm-pre-reloc;
+    };
+
+    echi0:	ehci@0xcefe0000 {
+      compatible = "generic-ehci";
+      reg = <0xcefe0000 0x100>;
+    };
+  };
+};

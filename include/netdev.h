@@ -69,6 +69,7 @@ int smc91111_initialize(u8 dev_num, int base_addr);
 int smc911x_initialize(u8 dev_num, int base_addr);
 int uec_standard_init(bd_t *bis);
 int uli526x_initialize(bd_t *bis);
+int gxp_umac_register(bd_t *bis);
 int armada100_fec_register(unsigned long base_addr);
 
 /* Boards with PCI network controllers can call this from their board_eth_init()
