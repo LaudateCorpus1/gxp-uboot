@@ -18,9 +18,6 @@
 
 /* Total Size of Environment Sector */
 
-/* Allow to overwrite serial and ethaddr */
-#define CONFIG_ENV_OVERWRITE
-
 /* Environment */
 #ifndef CONFIG_ENV_IS_NOWHERE
 /* Environment in MMC */
@@ -139,9 +136,6 @@
 #endif
 
 /* MMC */
-#ifdef CONFIG_FSL_USDHC
-# define CONFIG_SYS_MMC_ENV_DEV		0
-#endif
 
 /* NAND */
 #ifdef CONFIG_NAND_MXS
@@ -159,9 +153,7 @@
 #ifdef CONFIG_SPL_OS_BOOT
 # define CONFIG_SPL_FS_LOAD_ARGS_NAME	"args"
 # define CONFIG_SPL_FS_LOAD_KERNEL_NAME	"uImage"
-# define CONFIG_CMD_SPL
 # define CONFIG_SYS_SPL_ARGS_ADDR	0x18000000
-# define CONFIG_CMD_SPL_WRITE_SIZE	(128 * SZ_1K)
 
 /* MMC support: args@1MB kernel@2MB */
 # define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTOR		0x800   /* 1MB */
@@ -173,10 +165,6 @@
 #ifdef CONFIG_VIDEO_IPUV3
 # define CONFIG_IMX_VIDEO_SKIP
 
-# define CONFIG_SPLASH_SCREEN
-# define CONFIG_SPLASH_SCREEN_ALIGN
-# define CONFIG_BMP_16BPP
-# define CONFIG_VIDEO_BMP_RLE8
 # define CONFIG_VIDEO_LOGO
 # define CONFIG_VIDEO_BMP_LOGO
 #endif

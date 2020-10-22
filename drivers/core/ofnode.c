@@ -409,7 +409,8 @@ int ofnode_parse_phandle_with_args(ofnode node, const char *list_name,
 		int ret;
 
 		ret = of_parse_phandle_with_args(ofnode_to_np(node),
-						 list_name, cells_name, index,
+						 list_name, cells_name,
+						 cell_count, index,
 						 &args);
 		if (ret)
 			return ret;
@@ -431,15 +432,15 @@ int ofnode_parse_phandle_with_args(ofnode node, const char *list_name,
 }
 
 int ofnode_count_phandle_with_args(ofnode node, const char *list_name,
-				   const char *cells_name)
+				   const char *cells_name, int cell_count)
 {
 	if (ofnode_is_np(node))
 		return of_count_phandle_with_args(ofnode_to_np(node),
-				list_name, cells_name);
+				list_name, cells_name, cell_count);
 	else
 		return fdtdec_parse_phandle_with_args(gd->fdt_blob,
 				ofnode_to_offset(node), list_name, cells_name,
-				0, -1, NULL);
+				cell_count, -1, NULL);
 }
 
 ofnode ofnode_path(const char *path)
@@ -776,18 +777,26 @@ int ofnode_read_pci_vendev(ofnode node, u16 *vendor, u16 *device)
 
 int ofnode_read_addr_cells(ofnode node)
 {
-	if (ofnode_is_np(node))
+	if (ofnode_is_np(node)) {
 		return of_n_addr_cells(ofnode_to_np(node));
-	else  /* NOTE: this call should walk up the parent stack */
-		return fdt_address_cells(gd->fdt_blob, ofnode_to_offset(node));
+	} else {
+		int parent = fdt_parent_offset(gd->fdt_blob,
+					       ofnode_to_offset(node));
+
+		return fdt_address_cells(gd->fdt_blob, parent);
+	}
 }
 
 int ofnode_read_size_cells(ofnode node)
 {
-	if (ofnode_is_np(node))
+	if (ofnode_is_np(node)) {
 		return of_n_size_cells(ofnode_to_np(node));
-	else  /* NOTE: this call should walk up the parent stack */
-		return fdt_size_cells(gd->fdt_blob, ofnode_to_offset(node));
+	} else {
+		int parent = fdt_parent_offset(gd->fdt_blob,
+					       ofnode_to_offset(node));
+
+		return fdt_size_cells(gd->fdt_blob, parent);
+	}
 }
 
 int ofnode_read_simple_addr_cells(ofnode node)

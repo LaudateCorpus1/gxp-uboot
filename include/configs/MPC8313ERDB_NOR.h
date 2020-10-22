@@ -275,10 +275,6 @@
 #define CONFIG_BOOTP_BOOTFILESIZE
 
 /*
- * Command line configuration.
- */
-
-/*
  * Miscellaneous configurable options
  */
 #define CONFIG_SYS_LOAD_ADDR	0x2000000	/* default load address */
@@ -308,7 +304,6 @@
 /*
  * Environment Configuration
  */
-#define CONFIG_ENV_OVERWRITE
 
 #define CONFIG_NETDEV		"eth1"
 

@@ -6,6 +6,8 @@
 #include <common.h>
 #include <dm.h>
 #include <log.h>
+#include <dm/devres.h>
+#include <dm/device_compat.h>
 #include <dm/device-internal.h>
 #include <dm/lists.h>
 #include <dm/uclass-internal.h>
@@ -13,6 +15,7 @@
 #include <errno.h>
 #include <fdtdec.h>
 #include <malloc.h>
+#include <acpi/acpi_device.h>
 #include <asm/gpio.h>
 #include <dm/device_compat.h>
 #include <linux/bug.h>
@@ -68,6 +71,45 @@ static int gpio_to_device(unsigned int gpio, struct gpio_desc *desc)
 	return ret ? ret : -ENOENT;
 }
 
+#if CONFIG_IS_ENABLED(DM_GPIO_LOOKUP_LABEL)
+/**
+ * dm_gpio_lookup_label() - look for name in gpio device
+ *
+ * search in uc_priv, if there is a gpio with labelname same
+ * as name.
+ *
+ * @name:	name which is searched
+ * @uc_priv:	gpio_dev_priv pointer.
+ * @offset:	gpio offset within the device
+ * @return:	0 if found, -ENOENT if not.
+ */
+static int dm_gpio_lookup_label(const char *name,
+				struct gpio_dev_priv *uc_priv, ulong *offset)
+{
+	int len;
+	int i;
+
+	*offset = -1;
+	len = strlen(name);
+	for (i = 0; i < uc_priv->gpio_count; i++) {
+		if (!uc_priv->name[i])
+			continue;
+		if (!strncmp(name, uc_priv->name[i], len)) {
+			*offset = i;
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+#else
+static int
+dm_gpio_lookup_label(const char *name, struct gpio_dev_priv *uc_priv,
+		     ulong *offset)
+{
+	return -ENOENT;
+}
+#endif
+
 int dm_gpio_lookup_name(const char *name, struct gpio_desc *desc)
 {
 	struct gpio_dev_priv *uc_priv = NULL;
@@ -96,6 +138,13 @@ int dm_gpio_lookup_name(const char *name, struct gpio_desc *desc)
 			if (!strict_strtoul(name + len, 10, &offset))
 				break;
 		}
+
+		/*
+		 * if we did not found a gpio through its bank
+		 * name, we search for a valid gpio label.
+		 */
+		if (!dm_gpio_lookup_label(name, uc_priv, &offset))
+			break;
 	}
 
 	if (!dev)
@@ -600,6 +649,10 @@ static int _dm_gpio_set_dir_flags(struct gpio_desc *desc, ulong flags)
 		}
 	}
 
+	/* save the flags also in descriptor */
+	if (!ret)
+		desc->flags = flags;
+
 	return ret;
 }
 
@@ -614,10 +667,6 @@ int dm_gpio_set_dir_flags(struct gpio_desc *desc, ulong flags)
 	/* combine the requested flags (for IN/OUT) and the descriptor flags */
 	flags |= desc->flags;
 	ret = _dm_gpio_set_dir_flags(desc, flags);
-
-	/* update the descriptor flags */
-	if (ret)
-		desc->flags = flags;
 
 	return ret;
 }
@@ -808,6 +857,27 @@ int gpio_get_status(struct udevice *dev, int offset, char *buf, int buffsize)
 
 	return 0;
 }
+
+#if CONFIG_IS_ENABLED(ACPIGEN)
+int gpio_get_acpi(const struct gpio_desc *desc, struct acpi_gpio *gpio)
+{
+	struct dm_gpio_ops *ops;
+
+	memset(gpio, '\0', sizeof(*gpio));
+	if (!dm_gpio_is_valid(desc)) {
+		/* Indicate that the GPIO is not valid */
+		gpio->pin_count = 0;
+		gpio->pins[0] = 0;
+		return -EINVAL;
+	}
+
+	ops = gpio_get_ops(desc->dev);
+	if (!ops->get_acpi)
+		return -ENOSYS;
+
+	return ops->get_acpi(desc, gpio);
+}
+#endif
 
 int gpio_claim_vector(const int *gpio_num_array, const char *fmt)
 {
@@ -1139,6 +1209,75 @@ int gpio_dev_request_index(struct udevice *dev, const char *nodename,
 
 	return gpio_request_tail(0, nodename, &args, list_name, index, desc,
 				 flags, 0, dev);
+}
+
+static void devm_gpiod_release(struct udevice *dev, void *res)
+{
+	dm_gpio_free(dev, res);
+}
+
+static int devm_gpiod_match(struct udevice *dev, void *res, void *data)
+{
+	return res == data;
+}
+
+struct gpio_desc *devm_gpiod_get_index(struct udevice *dev, const char *id,
+				       unsigned int index, int flags)
+{
+	int rc;
+	struct gpio_desc *desc;
+	char *propname;
+	static const char suffix[] = "-gpios";
+
+	propname = malloc(strlen(id) + sizeof(suffix));
+	if (!propname) {
+		rc = -ENOMEM;
+		goto end;
+	}
+
+	strcpy(propname, id);
+	strcat(propname, suffix);
+
+	desc = devres_alloc(devm_gpiod_release, sizeof(struct gpio_desc),
+			    __GFP_ZERO);
+	if (unlikely(!desc)) {
+		rc = -ENOMEM;
+		goto end;
+	}
+
+	rc = gpio_request_by_name(dev, propname, index, desc, flags);
+
+end:
+	if (propname)
+		free(propname);
+
+	if (rc)
+		return ERR_PTR(rc);
+
+	devres_add(dev, desc);
+
+	return desc;
+}
+
+struct gpio_desc *devm_gpiod_get_index_optional(struct udevice *dev,
+						const char *id,
+						unsigned int index,
+						int flags)
+{
+	struct gpio_desc *desc = devm_gpiod_get_index(dev, id, index, flags);
+
+	if (IS_ERR(desc))
+		return NULL;
+
+	return desc;
+}
+
+void devm_gpiod_put(struct udevice *dev, struct gpio_desc *desc)
+{
+	int rc;
+
+	rc = devres_release(dev, devm_gpiod_release, devm_gpiod_match, desc);
+	WARN_ON(rc);
 }
 
 static int gpio_post_bind(struct udevice *dev)

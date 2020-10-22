@@ -512,7 +512,7 @@ static int dw_phy_init(struct dw_eth_dev *priv, void *dev)
 }
 
 #ifndef CONFIG_DM_ETH
-static int dw_eth_init(struct eth_device *dev, bd_t *bis)
+static int dw_eth_init(struct eth_device *dev, struct bd_info *bis)
 {
 	int ret;
 
@@ -688,7 +688,8 @@ int designware_eth_probe(struct udevice *dev)
 	int i, clock_nb;
 
 	priv->clock_count = 0;
-	clock_nb = dev_count_phandle_with_args(dev, "clocks", "#clock-cells");
+	clock_nb = dev_count_phandle_with_args(dev, "clocks", "#clock-cells",
+					       0);
 	if (clock_nb > 0) {
 		priv->clocks = devm_kcalloc(dev, clock_nb, sizeof(struct clk),
 					    GFP_KERNEL);

@@ -97,7 +97,6 @@
 /*
  * I2C
  */
-#define CONFIG_CMD_I2C
 
 #ifndef CONFIG_DM_I2C
 #define CONFIG_SYS_I2C
@@ -139,12 +138,6 @@
 #define CONFIG_SPI_FLASH_SPANSION
 #endif
 
-/* DM SPI */
-#if defined(CONFIG_FSL_DSPI) || defined(CONFIG_FSL_QSPI)
-#define CONFIG_CMD_SF
-#define CONFIG_DM_SPI_FLASH
-#endif
-
 /*
  * eTSEC
  */
@@ -182,8 +175,6 @@
 #define CONFIG_PCI_SCAN_SHOW
 #endif
 
-#define CONFIG_CMD_MII
-
 #define CONFIG_CMDLINE_TAG
 
 #define CONFIG_PEN_ADDR_BIG_ENDIAN
@@ -205,9 +196,6 @@
  */
 #define CONFIG_SYS_BOOTMAPSZ		(256 << 20)
 
-#define CONFIG_CMD_GREPENV
-#define CONFIG_CMD_MEMINFO
-
 #define CONFIG_SYS_LOAD_ADDR		0x82000000
 
 #define CONFIG_LS102XA_STREAM_ID
@@ -225,16 +213,6 @@
 #endif
 
 #define CONFIG_SYS_QE_FW_ADDR	0x67f40000
-
-/*
- * Environment
- */
-
-#define CONFIG_ENV_OVERWRITE
-
-#if defined(CONFIG_SD_BOOT)
-#define CONFIG_SYS_MMC_ENV_DEV	0
-#endif
 
 #define CONFIG_OF_BOARD_SETUP
 #define CONFIG_OF_STDOUT_VIA_ALIAS

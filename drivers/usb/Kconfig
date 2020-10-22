@@ -39,8 +39,8 @@ config DM_USB
 	help
 	  Enable driver model for USB. The USB interface is then implemented
 	  by the USB uclass. Multiple USB controllers of different types
-	  (XHCI, EHCI) can be attached and used. The 'usb' command works as
-	  normal. OCHI is not supported at present.
+	  (XHCI, EHCI, OHCI) can be attached and used. The 'usb' command works
+	  as normal.
 
 	  Much of the code is shared but with this option enabled the USB
 	  uclass takes care of device enumeration. USB devices can be
@@ -71,6 +71,8 @@ source "drivers/usb/host/Kconfig"
 source "drivers/usb/cdns3/Kconfig"
 
 source "drivers/usb/dwc3/Kconfig"
+
+source "drivers/usb/mtu3/Kconfig"
 
 source "drivers/usb/musb/Kconfig"
 
@@ -113,14 +115,14 @@ choice
 	---help---
 	  Enable a polling mechanism for USB keyboard.
 
-	config SYS_USB_EVENT_POLL
-		bool "Interrupt polling"
+config SYS_USB_EVENT_POLL
+    bool "Interrupt polling"
 
-	config SYS_USB_EVENT_POLL_VIA_INT_QUEUE
-		bool "Poll via interrupt queue"
+config SYS_USB_EVENT_POLL_VIA_INT_QUEUE
+    bool "Poll via interrupt queue"
 
-	config SYS_USB_EVENT_POLL_VIA_CONTROL_EP
-		bool "Poll via control EP"
+config SYS_USB_EVENT_POLL_VIA_CONTROL_EP
+    bool "Poll via control EP"
 
 endchoice
 

@@ -20,10 +20,6 @@
 #define CONFIG_SYS_TCLK		250000000	/* 250MHz */
 
 /*
- * Commands configuration
- */
-
-/*
  * SDIO/MMC Card Configuration
  */
 #define CONFIG_SYS_MMC_BASE		MVEBU_SDIO_BASE
@@ -34,7 +30,6 @@
 #define CONFIG_ENV_MIN_ENTRIES		128
 
 /* Environment in MMC */
-#define CONFIG_SYS_MMC_ENV_DEV		0
 /*
  * For SD - reserve 1 LBA for MBR + 1M for u-boot image. The MMC/eMMC
  * boot image starts @ LBA-0.

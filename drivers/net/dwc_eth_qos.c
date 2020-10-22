@@ -26,6 +26,7 @@
  *    supports a single RGMII PHY. This configuration also has SW control over
  *    all clock and reset signals to the HW block.
  */
+
 #include <common.h>
 #include <clk.h>
 #include <cpu_func.h>
@@ -1893,8 +1894,7 @@ static phy_interface_t eqos_get_interface_stm32(struct udevice *dev)
 
 	debug("%s(dev=%p):\n", __func__, dev);
 
-	phy_mode = fdt_getprop(gd->fdt_blob, dev_of_offset(dev), "phy-mode",
-			       NULL);
+	phy_mode = dev_read_prop(dev, "phy-mode", NULL);
 	if (phy_mode)
 		interface = phy_get_interface_by_name(phy_mode);
 
@@ -1931,8 +1931,7 @@ static phy_interface_t eqos_get_interface_imx(struct udevice *dev)
 
 	debug("%s(dev=%p):\n", __func__, dev);
 
-	phy_mode = fdt_getprop(gd->fdt_blob, dev_of_offset(dev), "phy-mode",
-			       NULL);
+	phy_mode = dev_read_prop(dev, "phy-mode", NULL);
 	if (phy_mode)
 		interface = phy_get_interface_by_name(phy_mode);
 
@@ -1995,9 +1994,9 @@ static int eqos_probe(struct udevice *dev)
 	eqos->dev = dev;
 	eqos->config = (void *)dev_get_driver_data(dev);
 
-	eqos->regs = devfdt_get_addr(dev);
+	eqos->regs = dev_read_addr(dev);
 	if (eqos->regs == FDT_ADDR_T_NONE) {
-		pr_err("devfdt_get_addr() failed");
+		pr_err("dev_read_addr() failed");
 		return -ENODEV;
 	}
 	eqos->mac_regs = (void *)(eqos->regs + EQOS_MAC_REGS_BASE);
@@ -2100,7 +2099,7 @@ static struct eqos_ops eqos_tegra186_ops = {
 	.eqos_get_tick_clk_rate = eqos_get_tick_clk_rate_tegra186
 };
 
-static const struct eqos_config eqos_tegra186_config = {
+static const struct eqos_config __maybe_unused eqos_tegra186_config = {
 	.reg_access_always_ok = false,
 	.mdio_wait = 10,
 	.swr_wait = 10,
@@ -2127,7 +2126,7 @@ static struct eqos_ops eqos_stm32_ops = {
 	.eqos_get_tick_clk_rate = eqos_get_tick_clk_rate_stm32
 };
 
-static const struct eqos_config eqos_stm32_config = {
+static const struct eqos_config __maybe_unused eqos_stm32_config = {
 	.reg_access_always_ok = false,
 	.mdio_wait = 10000,
 	.swr_wait = 50,
@@ -2154,7 +2153,7 @@ static struct eqos_ops eqos_imx_ops = {
 	.eqos_get_tick_clk_rate = eqos_get_tick_clk_rate_imx
 };
 
-struct eqos_config eqos_imx_config = {
+struct eqos_config __maybe_unused eqos_imx_config = {
 	.reg_access_always_ok = false,
 	.mdio_wait = 10000,
 	.swr_wait = 50,
@@ -2165,18 +2164,24 @@ struct eqos_config eqos_imx_config = {
 };
 
 static const struct udevice_id eqos_ids[] = {
+#if IS_ENABLED(CONFIG_DWC_ETH_QOS_TEGRA186)
 	{
 		.compatible = "nvidia,tegra186-eqos",
 		.data = (ulong)&eqos_tegra186_config
 	},
+#endif
+#if IS_ENABLED(CONFIG_DWC_ETH_QOS_STM32)
 	{
-		.compatible = "snps,dwmac-4.20a",
+		.compatible = "st,stm32mp1-dwmac",
 		.data = (ulong)&eqos_stm32_config
 	},
+#endif
+#if IS_ENABLED(CONFIG_DWC_ETH_QOS_IMX)
 	{
 		.compatible = "fsl,imx-eqos",
 		.data = (ulong)&eqos_imx_config
 	},
+#endif
 
 	{ }
 };

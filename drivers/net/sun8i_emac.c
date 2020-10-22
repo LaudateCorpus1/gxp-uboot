@@ -111,6 +111,7 @@ enum emac_variant {
 	H3_EMAC,
 	A64_EMAC,
 	R40_GMAC,
+	H6_EMAC,
 };
 
 struct emac_dma_desc {
@@ -300,9 +301,9 @@ static int sun8i_emac_set_syscon(struct sun8i_eth_pdata *pdata,
 	if (priv->variant == R40_GMAC) {
 		/* Select RGMII for R40 */
 		reg = readl(priv->sysctl_reg + 0x164);
-		reg |= CCM_GMAC_CTRL_TX_CLK_SRC_INT_RGMII |
-		       CCM_GMAC_CTRL_GPIT_RGMII |
-		       CCM_GMAC_CTRL_TX_CLK_DELAY(CONFIG_GMAC_TX_DELAY);
+		reg |= SC_ETCS_INT_GMII |
+		       SC_EPIT |
+		       (CONFIG_GMAC_TX_DELAY << SC_ETXDC_OFFSET);
 
 		writel(reg, priv->sysctl_reg + 0x164);
 		return 0;
@@ -310,14 +311,16 @@ static int sun8i_emac_set_syscon(struct sun8i_eth_pdata *pdata,
 
 	reg = readl(priv->sysctl_reg + 0x30);
 
-	if (priv->variant == H3_EMAC) {
+	if (priv->variant == H3_EMAC || priv->variant == H6_EMAC) {
 		ret = sun8i_emac_set_syscon_ephy(priv, &reg);
 		if (ret)
 			return ret;
 	}
 
 	reg &= ~(SC_ETCS_MASK | SC_EPIT);
-	if (priv->variant == H3_EMAC || priv->variant == A64_EMAC)
+	if (priv->variant == H3_EMAC ||
+	    priv->variant == A64_EMAC ||
+	    priv->variant == H6_EMAC)
 		reg &= ~SC_RMII_EN;
 
 	switch (priv->interface) {
@@ -329,7 +332,8 @@ static int sun8i_emac_set_syscon(struct sun8i_eth_pdata *pdata,
 		break;
 	case PHY_INTERFACE_MODE_RMII:
 		if (priv->variant == H3_EMAC ||
-		    priv->variant == A64_EMAC) {
+		    priv->variant == A64_EMAC ||
+		    priv->variant == H6_EMAC) {
 			reg |= SC_RMII_EN | SC_ETCS_EXT_GMII;
 		break;
 		}
@@ -535,7 +539,7 @@ static int parse_phy_pins(struct udevice *dev)
 
 		if (priv->variant == H3_EMAC)
 			sunxi_gpio_set_cfgpin(pin, SUN8I_IOMUX_H3);
-		else if (priv->variant == R40_GMAC)
+		else if (priv->variant == R40_GMAC || priv->variant == H6_EMAC)
 			sunxi_gpio_set_cfgpin(pin, SUN8I_IOMUX_R40);
 		else
 			sunxi_gpio_set_cfgpin(pin, SUN8I_IOMUX);
@@ -659,7 +663,8 @@ static int sun8i_eth_write_hwaddr(struct udevice *dev)
 	return _sun8i_write_hwaddr(priv, pdata->enetaddr);
 }
 
-static int sun8i_emac_board_setup(struct emac_eth_dev *priv)
+static int sun8i_emac_board_setup(struct udevice *dev,
+				  struct emac_eth_dev *priv)
 {
 	int ret;
 
@@ -829,7 +834,7 @@ static int sun8i_emac_eth_probe(struct udevice *dev)
 
 	priv->mac_reg = (void *)pdata->iobase;
 
-	ret = sun8i_emac_board_setup(priv);
+	ret = sun8i_emac_board_setup(dev, priv);
 	if (ret)
 		return ret;
 
@@ -850,7 +855,7 @@ static const struct eth_ops sun8i_emac_eth_ops = {
 	.stop                   = sun8i_emac_eth_stop,
 };
 
-static int sun8i_get_ephy_nodes(struct emac_eth_dev *priv)
+static int sun8i_get_ephy_nodes(struct udevice *dev, struct emac_eth_dev *priv)
 {
 	int emac_node, ephy_node, ret, ephy_handle;
 
@@ -915,7 +920,7 @@ static int sun8i_emac_eth_ofdata_to_platdata(struct udevice *dev)
 #endif
 	int ret;
 
-	pdata->iobase = devfdt_get_addr(dev);
+	pdata->iobase = dev_read_addr(dev);
 	if (pdata->iobase == FDT_ADDR_T_NONE) {
 		debug("%s: Cannot find MAC base address\n", __func__);
 		return -EINVAL;
@@ -982,7 +987,7 @@ static int sun8i_emac_eth_ofdata_to_platdata(struct udevice *dev)
 	}
 
 	if (priv->variant == H3_EMAC) {
-		ret = sun8i_get_ephy_nodes(priv);
+		ret = sun8i_get_ephy_nodes(dev, priv);
 		if (ret)
 			return ret;
 	}
@@ -1032,6 +1037,8 @@ static const struct udevice_id sun8i_emac_eth_ids[] = {
 		.data = (uintptr_t)A83T_EMAC },
 	{.compatible = "allwinner,sun8i-r40-gmac",
 		.data = (uintptr_t)R40_GMAC },
+	{.compatible = "allwinner,sun50i-h6-emac",
+		.data = (uintptr_t)H6_EMAC },
 	{ }
 };
 

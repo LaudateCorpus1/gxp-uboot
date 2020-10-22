@@ -53,7 +53,8 @@ int boot_selected_os(int argc, char *const argv[], int state,
 ulong bootm_disable_interrupts(void);
 
 /* This is a special function used by booti/bootz */
-int bootm_find_images(int flag, int argc, char *const argv[]);
+int bootm_find_images(int flag, int argc, char *const argv[], ulong start,
+		      ulong size);
 
 int do_bootm_states(struct cmd_tbl *cmdtp, int flag, int argc,
 		    char *const argv[], int states, bootm_headers_t *images,
@@ -73,5 +74,15 @@ void board_quiesce_devices(void);
  * switch_to_non_secure_mode() - switch to non-secure mode
  */
 void switch_to_non_secure_mode(void);
+
+/**
+ * arch_preboot_os() - arch specific configuration before booting
+ */
+void arch_preboot_os(void);
+
+/**
+ * board_preboot_os() - board specific configuration before booting
+ */
+void board_preboot_os(void);
 
 #endif

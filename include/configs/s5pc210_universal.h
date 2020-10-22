@@ -53,8 +53,6 @@
 #define CONFIG_BOOTBLOCK	"10"
 #define CONFIG_UBIBLOCK		"9"
 
-#define CONFIG_SYS_MMC_ENV_DEV		CONFIG_MMC_DEFAULT_DEV
-
 #define CONFIG_ENV_UBIFS_OPTION	" rootflags=bulk_read,no_chk_data_crc "
 #define CONFIG_ENV_FLASHBOOT	CONFIG_ENV_UBI_MTD CONFIG_ENV_UBIFS_OPTION \
 				"${mtdparts}"
@@ -160,9 +158,7 @@ int universal_spi_read(void);
 /*
  * LCD Settings
  */
-#define CONFIG_BMP_16BPP
 #define CONFIG_LD9040
-#define CONFIG_VIDEO_BMP_GZIP
 #define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE ((500 * 160 * 4) + 54)
 
 #endif	/* __CONFIG_H */

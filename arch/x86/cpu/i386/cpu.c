@@ -21,6 +21,7 @@
 #include <common.h>
 #include <cpu_func.h>
 #include <init.h>
+#include <log.h>
 #include <malloc.h>
 #include <spl.h>
 #include <asm/control_regs.h>
@@ -32,6 +33,10 @@
 #include <asm/processor-flags.h>
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#define CPUID_FEATURE_PAE	BIT(6)
+#define CPUID_FEATURE_PSE36	BIT(17)
+#define CPUID_FEAURE_HTT	BIT(28)
 
 /*
  * Constructor for a conventional segment GDT (or LDT) entry
@@ -363,6 +368,11 @@ static void setup_cpu_features(void)
 	: : "i" (em_rst), "i" (mp_ne_set) : "eax");
 }
 
+void cpu_reinit_fpu(void)
+{
+	asm ("fninit\n");
+}
+
 static void setup_identity(void)
 {
 	/* identify CPU via cpuid and store the decoded info into gd->arch */
@@ -380,6 +390,25 @@ static void setup_identity(void)
 
 		gd->arch.has_mtrr = has_mtrr();
 	}
+}
+
+static uint cpu_cpuid_extended_level(void)
+{
+	return cpuid_eax(0x80000000);
+}
+
+int cpu_phys_address_size(void)
+{
+	if (!has_cpuid())
+		return 32;
+
+	if (cpu_cpuid_extended_level() >= 0x80000008)
+		return cpuid_eax(0x80000008) & 0xff;
+
+	if (cpuid_edx(1) & (CPUID_FEATURE_PAE | CPUID_FEATURE_PSE36))
+		return 36;
+
+	return 32;
 }
 
 /* Don't allow PCI region 3 to use memory in the 2-4GB memory hole */
@@ -450,10 +479,15 @@ int x86_cpu_init_f(void)
 
 int x86_cpu_reinit_f(void)
 {
+	long addr;
+
 	setup_identity();
 	setup_pci_ram_top();
-	if (locate_coreboot_table() >= 0)
+	addr = locate_coreboot_table();
+	if (addr >= 0) {
+		gd->arch.coreboot_table = addr;
 		gd->flags |= GD_FLG_SKIP_LL_INIT;
+	}
 
 	return 0;
 }
@@ -620,32 +654,15 @@ int cpu_jump_to_64bit_uboot(ulong target)
 	return -EFAULT;
 }
 
-#ifdef CONFIG_SMP
-static int enable_smis(struct udevice *cpu, void *unused)
-{
-	return 0;
-}
-
-static struct mp_flight_record mp_steps[] = {
-	MP_FR_BLOCK_APS(mp_init_cpu, NULL, mp_init_cpu, NULL),
-	/* Wait for APs to finish initialization before proceeding */
-	MP_FR_BLOCK_APS(NULL, NULL, enable_smis, NULL),
-};
-
 int x86_mp_init(void)
 {
-	struct mp_params mp_params;
+	int ret;
 
-	mp_params.parallel_microcode_load = 0,
-	mp_params.flight_plan = &mp_steps[0];
-	mp_params.num_records = ARRAY_SIZE(mp_steps);
-	mp_params.microcode_pointer = 0;
-
-	if (mp_init(&mp_params)) {
+	ret = mp_init();
+	if (ret) {
 		printf("Warning: MP init failure\n");
-		return -EIO;
+		return log_ret(ret);
 	}
 
 	return 0;
 }
-#endif

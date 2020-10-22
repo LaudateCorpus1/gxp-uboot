@@ -35,18 +35,13 @@ static int log_syslog_emit(struct log_device *ldev, struct log_rec *rec)
 	char *log_msg;
 	int eth_hdr_size;
 	struct in_addr bcast_ip;
-	static int processing_msg;
 	unsigned int log_level;
 	char *log_hostname;
 
-	/* Fend off messages from the network stack while writing a message */
-	if (processing_msg)
-		return 0;
-
-	processing_msg = 1;
-
 	/* Setup packet buffers */
-	net_init();
+	ret = net_init();
+	if (ret)
+		return ret;
 	/* Disable hardware and put it into the reset state */
 	eth_halt();
 	/* Set current device according to environment variables */
@@ -82,21 +77,21 @@ static int log_syslog_emit(struct log_device *ldev, struct log_rec *rec)
 	if (log_hostname)
 		append(&ptr, msg_end, "%s ", log_hostname);
 	append(&ptr, msg_end, "uboot: ");
-	if (fmt & (1 << LOGF_LEVEL))
+	if (fmt & BIT(LOGF_LEVEL))
 		append(&ptr, msg_end, "%s.",
 		       log_get_level_name(rec->level));
-	if (fmt & (1 << LOGF_CAT))
+	if (fmt & BIT(LOGF_CAT))
 		append(&ptr, msg_end, "%s,",
 		       log_get_cat_name(rec->cat));
-	if (fmt & (1 << LOGF_FILE))
+	if (fmt & BIT(LOGF_FILE))
 		append(&ptr, msg_end, "%s:", rec->file);
-	if (fmt & (1 << LOGF_LINE))
+	if (fmt & BIT(LOGF_LINE))
 		append(&ptr, msg_end, "%d-", rec->line);
-	if (fmt & (1 << LOGF_FUNC))
+	if (fmt & BIT(LOGF_FUNC))
 		append(&ptr, msg_end, "%s()", rec->func);
-	if (fmt & (1 << LOGF_MSG))
+	if (fmt & BIT(LOGF_MSG))
 		append(&ptr, msg_end, "%s%s",
-		       fmt != (1 << LOGF_MSG) ? " " : "", rec->msg);
+		       fmt != BIT(LOGF_MSG) ? " " : "", rec->msg);
 	/* Consider trailing 0x00 */
 	ptr++;
 
@@ -108,7 +103,6 @@ static int log_syslog_emit(struct log_device *ldev, struct log_rec *rec)
 	net_send_packet((uchar *)msg, ptr - msg);
 
 out:
-	processing_msg = 0;
 	return ret;
 }
 

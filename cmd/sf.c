@@ -91,7 +91,7 @@ static int do_spi_flash_probe(int argc, char *const argv[])
 	unsigned int speed = CONFIG_SF_DEFAULT_SPEED;
 	unsigned int mode = CONFIG_SF_DEFAULT_MODE;
 	char *endp;
-#ifdef CONFIG_DM_SPI_FLASH
+#if CONFIG_IS_ENABLED(DM_SPI_FLASH)
 	struct udevice *new, *bus_dev;
 	int ret;
 #else
@@ -124,7 +124,7 @@ static int do_spi_flash_probe(int argc, char *const argv[])
 			return -1;
 	}
 
-#ifdef CONFIG_DM_SPI_FLASH
+#if CONFIG_IS_ENABLED(DM_SPI_FLASH)
 	/* Remove the old device, otherwise probe will just be a nop */
 	ret = spi_find_bus_and_cs(bus, cs, &bus_dev, &new);
 	if (!ret) {
@@ -145,13 +145,10 @@ static int do_spi_flash_probe(int argc, char *const argv[])
 
 	new = spi_flash_probe(bus, cs, speed, mode);
 	flash = new;
-
 	if (!new) {
 		printf("Failed to initialize SPI flash at %u:%u\n", bus, cs);
 		return 1;
 	}
-
-	flash = new;
 #endif
 
 	return 0;

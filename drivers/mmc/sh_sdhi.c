@@ -784,8 +784,7 @@ int sh_sdhi_init(unsigned long addr, int ch, unsigned long quirks)
 
 	return ret;
 error:
-	if (host)
-		free(host);
+	free(host);
 	return ret;
 }
 
@@ -834,7 +833,7 @@ static int sh_sdhi_dm_probe(struct udevice *dev)
 	fdt_addr_t base;
 	int ret;
 
-	base = devfdt_get_addr(dev);
+	base = dev_read_addr(dev);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 

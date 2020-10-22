@@ -2,7 +2,7 @@
 
 # Grab our configured image.  The source for this is found at:
 # https://gitlab.denx.de/u-boot/gitlab-ci-runner
-image: trini/u-boot-gitlab-ci-runner:bionic-20200403-27Apr2020
+image: trini/u-boot-gitlab-ci-runner:bionic-20200807-02Sep2020
 
 # We run some tests in different order, to catch some failures quicker.
 stages:
@@ -20,17 +20,13 @@ stages:
     - ln -s travis-ci /tmp/uboot-test-hooks/py/`hostname`
     - grub-mkimage --prefix="" -o ~/grub_x86.efi -O i386-efi normal  echo lsefimmap lsefi lsefisystab efinet tftp minicmd
     - grub-mkimage --prefix="" -o ~/grub_x64.efi -O x86_64-efi normal  echo lsefimmap lsefi lsefisystab efinet tftp minicmd
-    - cp /opt/grub/grubriscv64.efi ~/grub_riscv64.efi
-    - cp /opt/grub/grubriscv32.efi ~/grub_riscv32.efi
-    - cp /opt/grub/grubaa64.efi ~/grub_arm64.efi
-    - cp /opt/grub/grubarm.efi ~/grub_arm.efi
     - if [[ "${TEST_PY_BD}" == "qemu-riscv32_spl" ]]; then
-        wget -O - https://github.com/riscv/opensbi/releases/download/v0.6/opensbi-0.6-rv32-bin.tar.xz | tar -C /tmp -xJ;
-        export OPENSBI=/tmp/opensbi-0.6-rv32-bin/platform/qemu/virt/firmware/fw_dynamic.bin;
+        wget -O - https://github.com/riscv/opensbi/releases/download/v0.8/opensbi-0.8-rv-bin.tar.xz | tar -C /tmp -xJ;
+        export OPENSBI=/tmp/opensbi-0.8-rv-bin/share/opensbi/ilp32/generic/firmware/fw_dynamic.bin;
       fi
     - if [[ "${TEST_PY_BD}" == "qemu-riscv64_spl" ]]; then
-        wget -O - https://github.com/riscv/opensbi/releases/download/v0.6/opensbi-0.6-rv64-bin.tar.xz | tar -C /tmp -xJ;
-        export OPENSBI=/tmp/opensbi-0.6-rv64-bin/platform/qemu/virt/firmware/fw_dynamic.bin;
+        wget -O - https://github.com/riscv/opensbi/releases/download/v0.8/opensbi-0.8-rv-bin.tar.xz | tar -C /tmp -xJ;
+        export OPENSBI=/tmp/opensbi-0.8-rv-bin/share/opensbi/lp64/generic/firmware/fw_dynamic.bin;
       fi
 
   after_script:
@@ -40,13 +36,19 @@ stages:
     - export UBOOT_TRAVIS_BUILD_DIR=/tmp/${TEST_PY_BD}
     - tools/buildman/buildman -o ${UBOOT_TRAVIS_BUILD_DIR} -w -E -W -e
         --board ${TEST_PY_BD} ${OVERRIDE}
+    - cp ~/grub_x86.efi $UBOOT_TRAVIS_BUILD_DIR/
+    - cp ~/grub_x64.efi $UBOOT_TRAVIS_BUILD_DIR/
+    - cp /opt/grub/grubriscv64.efi $UBOOT_TRAVIS_BUILD_DIR/grub_riscv64.efi
+    - cp /opt/grub/grubriscv32.efi $UBOOT_TRAVIS_BUILD_DIR/grub_riscv32.efi
+    - cp /opt/grub/grubaa64.efi $UBOOT_TRAVIS_BUILD_DIR/grub_arm64.efi
+    - cp /opt/grub/grubarm.efi $UBOOT_TRAVIS_BUILD_DIR/grub_arm.efi
     - virtualenv -p /usr/bin/python3 /tmp/venv
     - . /tmp/venv/bin/activate
     - pip install -r test/py/requirements.txt
     # "${var:+"-k $var"}" expands to "" if $var is empty, "-k $var" if not
     - export PATH=/opt/qemu/bin:/tmp/uboot-test-hooks/bin:${PATH};
       export PYTHONPATH=/tmp/uboot-test-hooks/py/travis-ci;
-      ./test/py/test.py --bd ${TEST_PY_BD} ${TEST_PY_ID}
+      ./test/py/test.py -ra --bd ${TEST_PY_BD} ${TEST_PY_ID}
         ${TEST_PY_TEST_SPEC:+"-k ${TEST_PY_TEST_SPEC}"}
         --build-dir "$UBOOT_TRAVIS_BUILD_DIR"
 
@@ -167,7 +169,7 @@ Run binman, buildman, dtoc, Kconfig and patman testsuites:
       ./tools/binman/binman --toolpath ${UBOOT_TRAVIS_BUILD_DIR}/tools test;
       ./tools/buildman/buildman -t;
       ./tools/dtoc/dtoc -t;
-      ./tools/patman/patman --test;
+      ./tools/patman/patman test;
       make testconfig
 
 Run tests for Nokia RX-51 (aka N900):
@@ -276,6 +278,38 @@ qemu_mips64el test.py:
     TEST_PY_TEST_SPEC: "not sleep"
   <<: *buildman_and_testpy_dfn
 
+qemu_malta test.py:
+  tags: [ 'all' ]
+  variables:
+    TEST_PY_BD: "malta"
+    TEST_PY_TEST_SPEC: "not sleep and not efi"
+    TEST_PY_ID: "--id qemu"
+  <<: *buildman_and_testpy_dfn
+
+qemu_maltael test.py:
+  tags: [ 'all' ]
+  variables:
+    TEST_PY_BD: "maltael"
+    TEST_PY_TEST_SPEC: "not sleep and not efi"
+    TEST_PY_ID: "--id qemu"
+  <<: *buildman_and_testpy_dfn
+
+qemu_malta64 test.py:
+  tags: [ 'all' ]
+  variables:
+    TEST_PY_BD: "malta64"
+    TEST_PY_TEST_SPEC: "not sleep and not efi"
+    TEST_PY_ID: "--id qemu"
+  <<: *buildman_and_testpy_dfn
+
+qemu_malta64el test.py:
+  tags: [ 'all' ]
+  variables:
+    TEST_PY_BD: "malta64el"
+    TEST_PY_TEST_SPEC: "not sleep and not efi"
+    TEST_PY_ID: "--id qemu"
+  <<: *buildman_and_testpy_dfn
+
 qemu-ppce500 test.py:
   tags: [ 'all' ]
   variables:
@@ -323,6 +357,34 @@ qemu-x86_64 test.py:
   variables:
     TEST_PY_BD: "qemu-x86_64"
     TEST_PY_TEST_SPEC: "not sleep"
+  <<: *buildman_and_testpy_dfn
+
+r2dplus_i82557c test.py:
+  tags: [ 'all' ]
+  variables:
+    TEST_PY_BD: "r2dplus"
+    TEST_PY_ID: "--id i82557c_qemu"
+  <<: *buildman_and_testpy_dfn
+
+r2dplus_pcnet test.py:
+  tags: [ 'all' ]
+  variables:
+    TEST_PY_BD: "r2dplus"
+    TEST_PY_ID: "--id pcnet_qemu"
+  <<: *buildman_and_testpy_dfn
+
+r2dplus_rtl8139 test.py:
+  tags: [ 'all' ]
+  variables:
+    TEST_PY_BD: "r2dplus"
+    TEST_PY_ID: "--id rtl8139_qemu"
+  <<: *buildman_and_testpy_dfn
+
+r2dplus_tulip test.py:
+  tags: [ 'all' ]
+  variables:
+    TEST_PY_BD: "r2dplus"
+    TEST_PY_ID: "--id tulip_qemu"
   <<: *buildman_and_testpy_dfn
 
 xilinx_zynq_virt test.py:

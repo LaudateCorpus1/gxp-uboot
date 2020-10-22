@@ -19,8 +19,6 @@
 #define USDHC2_BASE_ADDR		0x5b020000
 #define CONFIG_SUPPORT_EMMC_BOOT	/* eMMC specific */
 
-#define CONFIG_ENV_OVERWRITE
-
 #define CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 
 /* Networking */
@@ -62,7 +60,7 @@
 #define BOOTENV_RUN_NET_USB_START ""
 
 #define CONFIG_MFG_ENV_SETTINGS \
-	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
+	"mfgtool_args=setenv bootargs ${consoleargs} " \
 		"rdinit=/linuxrc g_mass_storage.stall=0 " \
 		"g_mass_storage.removable=1 g_mass_storage.idVendor=0x066F " \
 		"g_mass_storage.idProduct=0x37FF " \
@@ -81,7 +79,7 @@
 	M4_BOOT_ENV \
 	MEM_LAYOUT_ENV_SETTINGS \
 	"boot_file=Image\0" \
-	"console=ttyLP3 earlycon\0" \
+	"consoleargs=console=ttyLP3,${baudrate} earlycon\0" \
 	"fdt_addr=0x83000000\0"	\
 	"fdt_file=fsl-imx8qxp-colibri-dsihdmi-eval-v3.dtb\0" \
 	"fdtfile=fsl-imx8qxp-colibri-dsihdmi-eval-v3.dtb\0" \
@@ -89,11 +87,11 @@
 	"image=Image\0" \
 	"initrd_addr=0x83800000\0" \
 	"initrd_high=0xffffffffffffffff\0" \
-	"mmcargs=setenv bootargs console=${console},${baudrate} " \
+	"mmcargs=setenv bootargs ${consoleargs} " \
 		"root=PARTUUID=${uuid} rootwait " \
 	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
-	"netargs=setenv bootargs console=${console},${baudrate} " \
+	"netargs=setenv bootargs ${consoleargs} " \
 		"root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp " \
 		"${vidargs}\0" \
 	"nfsboot=run netargs; dhcp ${loadaddr} ${image}; tftp ${fdt_addr} " \
@@ -116,8 +114,6 @@
 #define CONFIG_SYS_INIT_SP_ADDR		0x80200000
 
 /* Environment in eMMC, before config block at the end of 1st "boot sector" */
-#define CONFIG_SYS_MMC_ENV_DEV		0	/* USDHC1 eMMC */
-#define CONFIG_SYS_MMC_ENV_PART		1
 
 #define CONFIG_SYS_MMC_IMG_LOAD_PART	1
 
@@ -134,9 +130,6 @@
 #define PHYS_SDRAM_2			0x880000000
 #define PHYS_SDRAM_1_SIZE		SZ_2G		/* 2 GB */
 #define PHYS_SDRAM_2_SIZE		0x00000000	/* 0 GB */
-
-/* Serial */
-#define CONFIG_BAUDRATE			115200
 
 /* Monitor Command Prompt */
 #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "

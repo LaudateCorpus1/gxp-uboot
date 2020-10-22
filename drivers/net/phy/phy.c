@@ -664,7 +664,7 @@ static struct phy_device *phy_device_create(struct mii_dev *bus, int addr,
 	dev = malloc(sizeof(*dev));
 	if (!dev) {
 		printf("Failed to allocate PHY device for %s:%d\n",
-		       bus->name, addr);
+		       bus ? bus->name : "(null bus)", addr);
 		return NULL;
 	}
 
@@ -692,7 +692,7 @@ static struct phy_device *phy_device_create(struct mii_dev *bus, int addr,
 		return NULL;
 	}
 
-	if (addr >= 0 && addr < PHY_MAX_ADDR)
+	if (addr >= 0 && addr < PHY_MAX_ADDR && phy_id != PHY_FIXED_ID)
 		bus->phymap[addr] = dev;
 
 	return dev;
@@ -786,17 +786,27 @@ static struct phy_device *get_phy_device_by_mask(struct mii_dev *bus,
 						 uint phy_mask,
 						 phy_interface_t interface)
 {
-	int i;
 	struct phy_device *phydev;
+	int devad[] = {
+		/* Clause-22 */
+		MDIO_DEVAD_NONE,
+		/* Clause-45 */
+		MDIO_MMD_PMAPMD,
+		MDIO_MMD_WIS,
+		MDIO_MMD_PCS,
+		MDIO_MMD_PHYXS,
+		MDIO_MMD_VEND1,
+	};
+	int i, devad_cnt;
 
+	devad_cnt = sizeof(devad)/sizeof(int);
 	phydev = search_for_existing_phy(bus, phy_mask, interface);
 	if (phydev)
 		return phydev;
-	/* Try Standard (ie Clause 22) access */
-	/* Otherwise we have to try Clause 45 */
-	for (i = 0; i < 5; i++) {
+	/* try different access clauses  */
+	for (i = 0; i < devad_cnt; i++) {
 		phydev = create_phy_by_mask(bus, phy_mask,
-					    i ? i : MDIO_DEVAD_NONE, interface);
+					    devad[i], interface);
 		if (IS_ERR(phydev))
 			return NULL;
 		if (phydev)

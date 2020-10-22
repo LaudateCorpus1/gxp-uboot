@@ -37,7 +37,6 @@
 /*
  * Serial
  */
-#define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE	UART2_BASE
 
 /*
@@ -50,14 +49,6 @@
  * BOOTP options
  */
 #define CONFIG_BOOTP_BOOTFILESIZE
-
-/*
- * Command line configuration.
- */
-
-/*
- * Additional command
- */
 
 /*
  * USB

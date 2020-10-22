@@ -30,15 +30,6 @@ int spi_flash_erase_dm(struct udevice *dev, u32 offset, size_t len)
 	return log_ret(sf_get_ops(dev)->erase(dev, offset, len));
 }
 
-int spl_flash_get_sw_write_prot(struct udevice *dev)
-{
-	struct dm_spi_flash_ops *ops = sf_get_ops(dev);
-
-	if (!ops->get_sw_write_prot)
-		return -ENOSYS;
-	return log_ret(ops->get_sw_write_prot(dev));
-}
-
 /*
  * TODO(sjg@chromium.org): This is an old-style function. We should remove
  * it when all SPI flash drivers use dm
@@ -77,7 +68,7 @@ int spi_flash_probe_bus_cs(unsigned int busnum, unsigned int cs,
 	str = strdup(name);
 #endif
 	ret = spi_get_bus_and_cs(busnum, cs, max_hz, spi_mode,
-				  "spi_flash_std", str, &bus, &slave);
+				  "jedec_spi_nor", str, &bus, &slave);
 	if (ret)
 		return ret;
 

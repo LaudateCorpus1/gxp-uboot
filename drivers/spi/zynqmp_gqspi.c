@@ -181,10 +181,10 @@ static int zynqmp_qspi_ofdata_to_platdata(struct udevice *bus)
 
 	debug("%s\n", __func__);
 
-	plat->regs = (struct zynqmp_qspi_regs *)(devfdt_get_addr(bus) +
+	plat->regs = (struct zynqmp_qspi_regs *)(dev_read_addr(bus) +
 						 GQSPI_REG_OFFSET);
 	plat->dma_regs = (struct zynqmp_qspi_dma_regs *)
-			  (devfdt_get_addr(bus) + GQSPI_DMA_REG_OFFSET);
+			  (dev_read_addr(bus) + GQSPI_DMA_REG_OFFSET);
 
 	return 0;
 }
@@ -346,20 +346,20 @@ static int zynqmp_qspi_probe(struct udevice *bus)
 
 	ret = clk_get_by_index(bus, 0, &clk);
 	if (ret < 0) {
-		dev_err(dev, "failed to get clock\n");
+		dev_err(bus, "failed to get clock\n");
 		return ret;
 	}
 
 	clock = clk_get_rate(&clk);
 	if (IS_ERR_VALUE(clock)) {
-		dev_err(dev, "failed to get rate\n");
+		dev_err(bus, "failed to get rate\n");
 		return clock;
 	}
 	debug("%s: CLK %ld\n", __func__, clock);
 
 	ret = clk_enable(&clk);
 	if (ret && ret != -ENOSYS) {
-		dev_err(dev, "failed to enable clock\n");
+		dev_err(bus, "failed to enable clock\n");
 		return ret;
 	}
 	plat->frequency = clock;

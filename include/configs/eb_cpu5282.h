@@ -27,7 +27,6 @@
 
 #define CONFIG_BOOT_RETRY_TIME	-1
 #define CONFIG_RESET_TO_RETRY
-#define CONFIG_SPLASH_SCREEN
 
 #define CONFIG_HW_WATCHDOG
 
@@ -42,10 +41,6 @@
  * BOOTP options
  */
 #define CONFIG_BOOTP_BOOTFILESIZE
-
-/*
- * Command line configuration.
- */
 
 #define CONFIG_MCFTMR
 

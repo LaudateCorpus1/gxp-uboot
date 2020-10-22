@@ -18,46 +18,11 @@
 #include <test/suites.h>
 #include <test/ut.h>
 #include <asm/eth.h>
+#include "syslog_test.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
-/**
- * struct sb_log_env - private data for sandbox ethernet driver
- *
- * This structure is used for the private data of the sandbox ethernet
- * driver.
- *
- * @expected:	string expected to be written by the syslog driver
- * @uts:	unit test state
- */
-struct sb_log_env {
-	const char *expected;
-	struct unit_test_state *uts;
-};
-
-/**
- * sb_log_tx_handler() - transmit callback function
- *
- * This callback function is invoked when a network package is sent using the
- * sandbox Ethernet driver. The private data of the driver holds a sb_log_env
- * structure with the unit test state and the expected UDP payload.
- *
- * The following checks are executed:
- *
- * * the Ethernet packet indicates a IP broadcast message
- * * the IP header is for a local UDP broadcast message to port 514
- * * the UDP payload matches the expected string
- *
- * After testing the pointer to the expected string is set to NULL to signal
- * that the callback function has been called.
- *
- * @dev:	sandbox ethernet device
- * @packet:	Ethernet packet
- * @len:	length of Ethernet packet
- * Return:	0 = success
- */
-static int sb_log_tx_handler(struct udevice *dev, void *packet,
-			     unsigned int len)
+int sb_log_tx_handler(struct udevice *dev, void *packet, unsigned int len)
 {
 	struct eth_sandbox_priv *priv = dev_get_priv(dev);
 	struct sb_log_env *env = priv->priv;
@@ -91,6 +56,20 @@ static int sb_log_tx_handler(struct udevice *dev, void *packet,
 	return 0;
 }
 
+int syslog_test_setup(struct unit_test_state *uts)
+{
+	ut_assertok(log_device_set_enable(LOG_GET_DRIVER(syslog), true));
+
+	return 0;
+}
+
+int syslog_test_finish(struct unit_test_state *uts)
+{
+	ut_assertok(log_device_set_enable(LOG_GET_DRIVER(syslog), false));
+
+	return 0;
+}
+
 /**
  * log_test_syslog_err() - test log_err() function
  *
@@ -102,7 +81,8 @@ static int log_test_syslog_err(struct unit_test_state *uts)
 	int old_log_level = gd->default_log_level;
 	struct sb_log_env env;
 
-	gd->log_fmt = LOGF_DEFAULT;
+	ut_assertok(syslog_test_setup(uts));
+	gd->log_fmt = LOGF_TEST;
 	gd->default_log_level = LOGL_INFO;
 	env_set("ethact", "eth@10002000");
 	env_set("log_hostname", "sandbox");
@@ -116,6 +96,8 @@ static int log_test_syslog_err(struct unit_test_state *uts)
 	/* Check that the callback function was called */
 	sandbox_eth_set_tx_handler(0, NULL);
 	gd->default_log_level = old_log_level;
+	gd->log_fmt = log_get_default_format();
+	ut_assertok(syslog_test_finish(uts));
 
 	return 0;
 }
@@ -132,7 +114,8 @@ static int log_test_syslog_warning(struct unit_test_state *uts)
 	int old_log_level = gd->default_log_level;
 	struct sb_log_env env;
 
-	gd->log_fmt = LOGF_DEFAULT;
+	ut_assertok(syslog_test_setup(uts));
+	gd->log_fmt = LOGF_TEST;
 	gd->default_log_level = LOGL_INFO;
 	env_set("ethact", "eth@10002000");
 	env_set("log_hostname", "sandbox");
@@ -147,6 +130,8 @@ static int log_test_syslog_warning(struct unit_test_state *uts)
 	/* Check that the callback function was called */
 	ut_assertnull(env.expected);
 	gd->default_log_level = old_log_level;
+	gd->log_fmt = log_get_default_format();
+	ut_assertok(syslog_test_finish(uts));
 
 	return 0;
 }
@@ -163,7 +148,8 @@ static int log_test_syslog_notice(struct unit_test_state *uts)
 	int old_log_level = gd->default_log_level;
 	struct sb_log_env env;
 
-	gd->log_fmt = LOGF_DEFAULT;
+	ut_assertok(syslog_test_setup(uts));
+	gd->log_fmt = LOGF_TEST;
 	gd->default_log_level = LOGL_INFO;
 	env_set("ethact", "eth@10002000");
 	env_set("log_hostname", "sandbox");
@@ -178,6 +164,8 @@ static int log_test_syslog_notice(struct unit_test_state *uts)
 	/* Check that the callback function was called */
 	ut_assertnull(env.expected);
 	gd->default_log_level = old_log_level;
+	gd->log_fmt = log_get_default_format();
+	ut_assertok(syslog_test_finish(uts));
 
 	return 0;
 }
@@ -194,7 +182,8 @@ static int log_test_syslog_info(struct unit_test_state *uts)
 	int old_log_level = gd->default_log_level;
 	struct sb_log_env env;
 
-	gd->log_fmt = LOGF_DEFAULT;
+	ut_assertok(syslog_test_setup(uts));
+	gd->log_fmt = LOGF_TEST;
 	gd->default_log_level = LOGL_INFO;
 	env_set("ethact", "eth@10002000");
 	env_set("log_hostname", "sandbox");
@@ -209,6 +198,8 @@ static int log_test_syslog_info(struct unit_test_state *uts)
 	/* Check that the callback function was called */
 	ut_assertnull(env.expected);
 	gd->default_log_level = old_log_level;
+	gd->log_fmt = log_get_default_format();
+	ut_assertok(syslog_test_finish(uts));
 
 	return 0;
 }
@@ -225,7 +216,8 @@ static int log_test_syslog_debug(struct unit_test_state *uts)
 	int old_log_level = gd->default_log_level;
 	struct sb_log_env env;
 
-	gd->log_fmt = LOGF_DEFAULT;
+	ut_assertok(syslog_test_setup(uts));
+	gd->log_fmt = LOGF_TEST;
 	gd->default_log_level = LOGL_DEBUG;
 	env_set("ethact", "eth@10002000");
 	env_set("log_hostname", "sandbox");
@@ -240,41 +232,9 @@ static int log_test_syslog_debug(struct unit_test_state *uts)
 	/* Check that the callback function was called */
 	ut_assertnull(env.expected);
 	gd->default_log_level = old_log_level;
+	gd->log_fmt = log_get_default_format();
+	ut_assertok(syslog_test_finish(uts));
 
 	return 0;
 }
 LOG_TEST(log_test_syslog_debug);
-
-/**
- * log_test_syslog_nodebug() - test logging level filter
- *
- * Verify that log_debug() does not lead to a log message if the logging level
- * is set to LOGL_INFO.
- *
- * @uts:	unit test state
- * Return:	0 = success
- */
-static int log_test_syslog_nodebug(struct unit_test_state *uts)
-{
-	int old_log_level = gd->default_log_level;
-	struct sb_log_env env;
-
-	gd->log_fmt = LOGF_DEFAULT;
-	gd->default_log_level = LOGL_INFO;
-	env_set("ethact", "eth@10002000");
-	env_set("log_hostname", "sandbox");
-	env.expected = "<7>sandbox uboot: log_test_syslog_nodebug() "
-		       "testing log_debug\n";
-	env.uts = uts;
-	sandbox_eth_set_tx_handler(0, sb_log_tx_handler);
-	/* Used by ut_assert macros in the tx_handler */
-	sandbox_eth_set_priv(0, &env);
-	log_debug("testing %s\n", "log_debug");
-	sandbox_eth_set_tx_handler(0, NULL);
-	/* Check that the callback function was not called */
-	ut_assertnonnull(env.expected);
-	gd->default_log_level = old_log_level;
-
-	return 0;
-}
-LOG_TEST(log_test_syslog_nodebug);

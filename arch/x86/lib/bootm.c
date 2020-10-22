@@ -53,7 +53,7 @@ void bootm_announce_and_cleanup(void)
 #if defined(CONFIG_OF_LIBFDT) && !defined(CONFIG_OF_NO_KERNEL)
 int arch_fixup_memory_node(void *blob)
 {
-	bd_t	*bd = gd->bd;
+	struct bd_info	*bd = gd->bd;
 	int bank;
 	u64 start[CONFIG_NR_DRAM_BANKS];
 	u64 size[CONFIG_NR_DRAM_BANKS];
@@ -136,7 +136,7 @@ static int boot_prep_linux(bootm_headers_t *images)
 	printf("Setup at %#08lx\n", images->ep);
 	ret = setup_zimage((void *)images->ep, cmd_line_dest,
 			0, images->rd_start,
-			images->rd_end - images->rd_start);
+			images->rd_end - images->rd_start, 0);
 
 	if (ret) {
 		printf("## Setting up boot parameters failed ...\n");

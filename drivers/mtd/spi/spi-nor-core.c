@@ -11,6 +11,7 @@
 
 #include <common.h>
 #include <log.h>
+#include <dm.h>
 #include <dm/device_compat.h>
 #include <dm/devres.h>
 #include <linux/bitops.h>
@@ -1235,6 +1236,12 @@ static int spi_nor_write(struct mtd_info *mtd, loff_t to, size_t len,
 	size_t page_offset, page_remain, i;
 	ssize_t ret;
 
+#ifdef CONFIG_SPI_FLASH_SST
+	/* sst nor chips use AAI word program */
+	if (nor->info->flags & SST_WRITE)
+		return sst_write(mtd, to, len, retlen, buf);
+#endif
+
 	dev_dbg(nor->dev, "to 0x%08x, len %zd\n", (u32)to, len);
 
 	if (!len)
@@ -1285,7 +1292,7 @@ write_err:
 	return ret;
 }
 
-#ifdef CONFIG_SPI_FLASH_MACRONIX
+#if defined(CONFIG_SPI_FLASH_MACRONIX) || defined(CONFIG_SPI_FLASH_ISSI)
 /**
  * macronix_quad_enable() - set QE bit in Status Register.
  * @nor:	pointer to a 'struct spi_nor'
@@ -1963,7 +1970,7 @@ static int spi_nor_parse_bfpt(struct spi_nor *nor,
 		params->quad_enable = spansion_no_read_cr_quad_enable;
 		break;
 #endif
-#ifdef CONFIG_SPI_FLASH_MACRONIX
+#if defined(CONFIG_SPI_FLASH_MACRONIX) || defined(CONFIG_SPI_FLASH_ISSI)
 	case BFPT_DWORD15_QER_SR1_BIT6:
 		params->quad_enable = macronix_quad_enable;
 		break;
@@ -2200,8 +2207,9 @@ static int spi_nor_init_params(struct spi_nor *nor,
 	if (params->hwcaps.mask & (SNOR_HWCAPS_READ_QUAD |
 				   SNOR_HWCAPS_PP_QUAD)) {
 		switch (JEDEC_MFR(info)) {
-#ifdef CONFIG_SPI_FLASH_MACRONIX
+#if defined(CONFIG_SPI_FLASH_MACRONIX) || defined(CONFIG_SPI_FLASH_ISSI)
 		case SNOR_MFR_MACRONIX:
+		case SNOR_MFR_ISSI:
 			params->quad_enable = macronix_quad_enable;
 			break;
 #endif
@@ -2463,7 +2471,7 @@ static int spi_nor_init(struct spi_nor *nor)
 		 * designer) that this is bad.
 		 */
 		if (nor->flags & SNOR_F_BROKEN_RESET)
-			printf("enabling reset hack; may not recover from unexpected reboots\n");
+			debug("enabling reset hack; may not recover from unexpected reboots\n");
 		set_4byte(nor, nor->info, 1);
 	}
 
@@ -2530,6 +2538,7 @@ int spi_nor_scan(struct spi_nor *nor)
 	mtd->size = params.size;
 	mtd->_erase = spi_nor_erase;
 	mtd->_read = spi_nor_read;
+	mtd->_write = spi_nor_write;
 
 #if defined(CONFIG_SPI_FLASH_STMICRO) || defined(CONFIG_SPI_FLASH_SST)
 	/* NOR protection support for STmicro/Micron chips and similar */
@@ -2553,13 +2562,7 @@ int spi_nor_scan(struct spi_nor *nor)
 		nor->flash_unlock = sst26_unlock;
 		nor->flash_is_locked = sst26_is_locked;
 	}
-
-	/* sst nor chips use AAI word program */
-	if (info->flags & SST_WRITE)
-		mtd->_write = sst_write;
-	else
 #endif
-		mtd->_write = spi_nor_write;
 
 	if (info->flags & USE_FSR)
 		nor->flags |= SNOR_F_USE_FSR;
@@ -2639,15 +2642,4 @@ int spi_nor_scan(struct spi_nor *nor)
 #endif
 
 	return 0;
-}
-
-/* U-Boot specific functions, need to extend MTD to support these */
-int spi_flash_cmd_get_sw_write_prot(struct spi_nor *nor)
-{
-	int sr = read_sr(nor);
-
-	if (sr < 0)
-		return sr;
-
-	return (sr >> 2) & 7;
 }

@@ -13,7 +13,6 @@
 #define CONFIG_CUSTOMER_BOARD_SUPPORT
 
 #define CONFIG_SKIP_LOWLEVEL_INIT	/* disable board lowlevel_init */
-#define CONFIG_BOARD_LATE_INIT
 
 /*
  * TEXT_BASE needs to be below 16MiB, since this area is scrubbed
@@ -111,9 +110,6 @@
 /*
  * Environment Configuration
  */
-#define CONFIG_ENV_OVERWRITE
-
-#define CONFIG_BAUDRATE 115200
 
 #define CONFIG_HOSTNAME		"ccdc"
 #define CONFIG_ROOTPATH		"/opt/nfsroot"

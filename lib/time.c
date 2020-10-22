@@ -91,13 +91,13 @@ uint64_t notrace get_ticks(void)
 
 		ret = dm_timer_init();
 		if (ret)
-			return ret;
+			panic("Could not initialize timer (err %d)\n", ret);
 #endif
 	}
 
 	ret = timer_get_count(gd->timer, &count);
 	if (ret)
-		return ret;
+		panic("Could not read count from timer (err %d)\n", ret);
 
 	return count;
 }
@@ -150,6 +150,11 @@ static uint64_t notrace tick_to_time_us(uint64_t tick)
 uint64_t __weak get_timer_us(uint64_t base)
 {
 	return tick_to_time_us(get_ticks()) - base;
+}
+
+unsigned long __weak get_timer_us_long(unsigned long base)
+{
+	return timer_get_us() - base;
 }
 
 unsigned long __weak notrace timer_get_us(void)

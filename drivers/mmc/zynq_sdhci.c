@@ -19,8 +19,6 @@
 #include <sdhci.h>
 #include <zynqmp_tap_delay.h>
 
-DECLARE_GLOBAL_DATA_PTR;
-
 struct arasan_sdhci_plat {
 	struct mmc_config cfg;
 	struct mmc mmc;
@@ -193,7 +191,7 @@ static void arasan_sdhci_set_control_reg(struct sdhci_host *host)
 
 #if defined(CONFIG_ARCH_ZYNQMP)
 const struct sdhci_ops arasan_ops = {
-	.platform_execute_tuning	= &arasan_sdhci_execute_tuning,
+	.platform_execute_tuning = &arasan_sdhci_execute_tuning,
 	.set_delay = &arasan_sdhci_set_tapdelay,
 	.set_control_reg = &arasan_sdhci_set_control_reg,
 };
@@ -278,7 +276,7 @@ static int arasan_sdhci_ofdata_to_platdata(struct udevice *dev)
 		return PTR_ERR(priv->host->ioaddr);
 
 	priv->deviceid = dev_read_u32_default(dev, "xlnx,device_id", -1);
-	priv->bank = dev_read_u32_default(dev, "xlnx,mio_bank", -1);
+	priv->bank = dev_read_u32_default(dev, "xlnx,mio-bank", 0);
 
 	return 0;
 }

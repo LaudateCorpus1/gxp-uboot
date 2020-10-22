@@ -180,8 +180,6 @@
 
 #if defined(CONFIG_PCI)
 
-#undef CONFIG_EEPRO100
-#undef CONFIG_TULIP
 
 #if !defined(CONFIG_PCI_PNP)
 	#define PCI_ENET0_IOADDR	0xFIXME
@@ -232,10 +230,6 @@
  */
 #define CONFIG_BOOTP_BOOTFILESIZE
 
-/*
- * Command line configuration.
- */
-
 #undef CONFIG_WATCHDOG			/* watchdog disabled */
 
 /*
@@ -268,7 +262,6 @@
 /*
  * Environment Configuration
  */
-#define CONFIG_ENV_OVERWRITE
 
 #if defined(CONFIG_TSEC_ENET)
 #define CONFIG_HAS_ETH0

@@ -60,14 +60,12 @@ struct ti_sci_rm_type_map {
  * @max_msgs: Maximum number of messages that can be pending
  *		  simultaneously in the system
  * @max_msg_size: Maximum size of data per message that can be handled.
- * @rm_type_map: RM resource type mapping structure.
  */
 struct ti_sci_desc {
 	u8 default_host_id;
 	int max_rx_timeout_ms;
 	int max_msgs;
 	int max_msg_size;
-	struct ti_sci_rm_type_map *rm_type_map;
 };
 
 /**
@@ -621,7 +619,7 @@ static int ti_sci_get_device_state(const struct ti_sci_handle *handle,
 
 	ret = ti_sci_do_xfer(info, xfer);
 	if (ret) {
-		dev_err(dev, "Mbox send fail %d\n", ret);
+		dev_err(info->dev, "Mbox send fail %d\n", ret);
 		return ret;
 	}
 
@@ -1593,7 +1591,7 @@ static int ti_sci_cmd_core_reboot(const struct ti_sci_handle *handle)
 
 	ret = ti_sci_do_xfer(info, xfer);
 	if (ret) {
-		dev_err(dev, "Mbox send fail %d\n", ret);
+		dev_err(info->dev, "Mbox send fail %d\n", ret);
 		return ret;
 	}
 
@@ -1603,33 +1601,6 @@ static int ti_sci_cmd_core_reboot(const struct ti_sci_handle *handle)
 		return -ENODEV;
 
 	return ret;
-}
-
-static int ti_sci_get_resource_type(struct ti_sci_info *info, u16 dev_id,
-				    u16 *type)
-{
-	struct ti_sci_rm_type_map *rm_type_map = info->desc->rm_type_map;
-	bool found = false;
-	int i;
-
-	/* If map is not provided then assume dev_id is used as type */
-	if (!rm_type_map) {
-		*type = dev_id;
-		return 0;
-	}
-
-	for (i = 0; rm_type_map[i].dev_id; i++) {
-		if (rm_type_map[i].dev_id == dev_id) {
-			*type = rm_type_map[i].type;
-			found = true;
-			break;
-		}
-	}
-
-	if (!found)
-		return -EINVAL;
-
-	return 0;
 }
 
 /**
@@ -1654,7 +1625,6 @@ static int ti_sci_get_resource_range(const struct ti_sci_handle *handle,
 	struct ti_sci_msg_req_get_resource_range req;
 	struct ti_sci_xfer *xfer;
 	struct ti_sci_info *info;
-	u16 type;
 	int ret = 0;
 
 	if (IS_ERR(handle))
@@ -1669,23 +1639,17 @@ static int ti_sci_get_resource_range(const struct ti_sci_handle *handle,
 				     (u32 *)&req, sizeof(req), sizeof(*resp));
 	if (IS_ERR(xfer)) {
 		ret = PTR_ERR(xfer);
-		dev_err(dev, "Message alloc failed(%d)\n", ret);
+		dev_err(info->dev, "Message alloc failed(%d)\n", ret);
 		return ret;
 	}
 
-	ret = ti_sci_get_resource_type(info, dev_id, &type);
-	if (ret) {
-		dev_err(dev, "rm type lookup failed for %u\n", dev_id);
-		goto fail;
-	}
-
 	req.secondary_host = s_host;
-	req.type = type & MSG_RM_RESOURCE_TYPE_MASK;
+	req.type = dev_id & MSG_RM_RESOURCE_TYPE_MASK;
 	req.subtype = subtype & MSG_RM_RESOURCE_SUBTYPE_MASK;
 
 	ret = ti_sci_do_xfer(info, xfer);
 	if (ret) {
-		dev_err(dev, "Mbox send fail %d\n", ret);
+		dev_err(info->dev, "Mbox send fail %d\n", ret);
 		goto fail;
 	}
 
@@ -1781,7 +1745,7 @@ static int ti_sci_cmd_query_msmc(const struct ti_sci_handle *handle,
 
 	ret = ti_sci_do_xfer(info, xfer);
 	if (ret) {
-		dev_err(dev, "Mbox send fail %d\n", ret);
+		dev_err(info->dev, "Mbox send fail %d\n", ret);
 		return ret;
 	}
 
@@ -2265,6 +2229,14 @@ static int ti_sci_cmd_proc_shutdown_no_wait(const struct ti_sci_handle *handle,
 					    u8 proc_id)
 {
 	int ret;
+	struct ti_sci_info *info;
+
+	if (IS_ERR(handle))
+		return PTR_ERR(handle);
+	if (!handle)
+		return -EINVAL;
+
+	info = handle_to_ti_sci_info(handle);
 
 	/*
 	 * Send the core boot status wait message waiting for either WFE or
@@ -2590,7 +2562,8 @@ static int ti_sci_cmd_rm_udmap_rx_flow_cfg(
 				     (u32 *)&req, sizeof(req), sizeof(*resp));
 	if (IS_ERR(xfer)) {
 		ret = PTR_ERR(xfer);
-		dev_err(dev, "RX_FL_CFG: Message alloc failed(%d)\n", ret);
+		dev_err(info->dev, "RX_FL_CFG: Message alloc failed(%d)\n",
+			ret);
 		return ret;
 	}
 
@@ -2619,7 +2592,7 @@ static int ti_sci_cmd_rm_udmap_rx_flow_cfg(
 
 	ret = ti_sci_do_xfer(info, xfer);
 	if (ret) {
-		dev_err(dev, "RX_FL_CFG: Mbox send fail %d\n", ret);
+		dev_err(info->dev, "RX_FL_CFG: Mbox send fail %d\n", ret);
 		goto fail;
 	}
 
@@ -3096,7 +3069,6 @@ devm_ti_sci_get_of_resource(const struct ti_sci_handle *handle,
 			    struct udevice *dev, u32 dev_id, char *of_prop)
 {
 	u32 resource_subtype;
-	u16 resource_type;
 	struct ti_sci_resource *res;
 	bool valid_set = false;
 	int sets, i, ret;
@@ -3120,13 +3092,6 @@ devm_ti_sci_get_of_resource(const struct ti_sci_handle *handle,
 	if (!res->desc)
 		return ERR_PTR(-ENOMEM);
 
-	ret = ti_sci_get_resource_type(handle_to_ti_sci_info(handle), dev_id,
-				       &resource_type);
-	if (ret) {
-		dev_err(dev, "No valid resource type for %u\n", dev_id);
-		return ERR_PTR(-EINVAL);
-	}
-
 	ret = dev_read_u32_array(dev, of_prop, temp, res->sets);
 	if (ret)
 		return ERR_PTR(-EINVAL);
@@ -3139,7 +3104,7 @@ devm_ti_sci_get_of_resource(const struct ti_sci_handle *handle,
 							&res->desc[i].num);
 		if (ret) {
 			dev_dbg(dev, "type %d subtype %d not allocated for host %d\n",
-				resource_type, resource_subtype,
+				dev_id, resource_subtype,
 				handle_to_ti_sci_info(handle)->host_id);
 			res->desc[i].start = 0;
 			res->desc[i].num = 0;
@@ -3148,7 +3113,7 @@ devm_ti_sci_get_of_resource(const struct ti_sci_handle *handle,
 
 		valid_set = true;
 		dev_dbg(dev, "res type = %d, subtype = %d, start = %d, num = %d\n",
-			resource_type, resource_subtype, res->desc[i].start,
+			dev_id, resource_subtype, res->desc[i].start,
 			res->desc[i].num);
 
 		res->desc[i].res_map =
@@ -3172,17 +3137,6 @@ static const struct ti_sci_desc ti_sci_pmmc_k2g_desc = {
 	/* Limited by MBOX_TX_QUEUE_LEN. K2G can handle upto 128 messages! */
 	.max_msgs = 20,
 	.max_msg_size = 64,
-	.rm_type_map = NULL,
-};
-
-static struct ti_sci_rm_type_map ti_sci_am654_rm_type_map[] = {
-	{.dev_id = 56, .type = 0x00b}, /* GIC_IRQ */
-	{.dev_id = 179, .type = 0x000}, /* MAIN_NAV_UDMASS_IA0 */
-	{.dev_id = 187, .type = 0x009}, /* MAIN_NAV_RA */
-	{.dev_id = 188, .type = 0x006}, /* MAIN_NAV_UDMAP */
-	{.dev_id = 194, .type = 0x007}, /* MCU_NAV_UDMAP */
-	{.dev_id = 195, .type = 0x00a}, /* MCU_NAV_RA */
-	{.dev_id = 0, .type = 0x000}, /* end of table */
 };
 
 /* Description for AM654 */
@@ -3193,7 +3147,6 @@ static const struct ti_sci_desc ti_sci_pmmc_am654_desc = {
 	/* Limited by MBOX_TX_QUEUE_LEN. K2G can handle upto 128 messages! */
 	.max_msgs = 20,
 	.max_msg_size = 60,
-	.rm_type_map = ti_sci_am654_rm_type_map,
 };
 
 static const struct udevice_id ti_sci_ids[] = {

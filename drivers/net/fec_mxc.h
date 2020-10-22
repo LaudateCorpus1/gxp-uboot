@@ -244,12 +244,13 @@ struct fec_priv {
 	int rbd_index;			/* next receive BD to read */
 	struct fec_bd *tbd_base;	/* TBD ring */
 	int tbd_index;			/* next transmit BD to write */
-	bd_t *bd;
+	struct bd_info *bd;
 	uint8_t *tdb_ptr;
 	int dev_id;
 	struct mii_dev *bus;
 #ifdef CONFIG_PHYLIB
 	struct phy_device *phydev;
+	ofnode phy_of_node;
 #else
 	int phy_id;
 	int (*mii_postcall)(int);

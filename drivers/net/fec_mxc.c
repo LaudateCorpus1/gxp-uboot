@@ -588,7 +588,7 @@ static int fec_open(struct eth_device *edev)
 #ifdef CONFIG_DM_ETH
 static int fecmxc_init(struct udevice *dev)
 #else
-static int fec_init(struct eth_device *dev, bd_t *bd)
+static int fec_init(struct eth_device *dev, struct bd_info *bd)
 #endif
 {
 #ifdef CONFIG_DM_ETH
@@ -1102,10 +1102,10 @@ struct mii_dev *fec_get_miibus(ulong base_addr, int dev_id)
 
 #ifndef CONFIG_DM_ETH
 #ifdef CONFIG_PHYLIB
-int fec_probe(bd_t *bd, int dev_id, uint32_t base_addr,
+int fec_probe(struct bd_info *bd, int dev_id, uint32_t base_addr,
 		struct mii_dev *bus, struct phy_device *phydev)
 #else
-static int fec_probe(bd_t *bd, int dev_id, uint32_t base_addr,
+static int fec_probe(struct bd_info *bd, int dev_id, uint32_t base_addr,
 		struct mii_dev *bus, int phy_id)
 #endif
 {
@@ -1199,7 +1199,8 @@ err1:
 	return ret;
 }
 
-int fecmxc_initialize_multi(bd_t *bd, int dev_id, int phy_id, uint32_t addr)
+int fecmxc_initialize_multi(struct bd_info *bd, int dev_id, int phy_id,
+			    uint32_t addr)
 {
 	uint32_t base_mii;
 	struct mii_dev *bus = NULL;
@@ -1250,7 +1251,7 @@ int fecmxc_initialize_multi(bd_t *bd, int dev_id, int phy_id, uint32_t addr)
 }
 
 #ifdef CONFIG_FEC_MXC_PHYADDR
-int fecmxc_initialize(bd_t *bd)
+int fecmxc_initialize(struct bd_info *bd)
 {
 	return fecmxc_initialize_multi(bd, -1, CONFIG_FEC_MXC_PHYADDR,
 			IMX_FEC_BASE);
@@ -1294,7 +1295,7 @@ static const struct eth_ops fecmxc_ops = {
 	.read_rom_hwaddr	= fecmxc_read_rom_hwaddr,
 };
 
-static int device_get_phy_addr(struct udevice *dev)
+static int device_get_phy_addr(struct fec_priv *priv, struct udevice *dev)
 {
 	struct ofnode_phandle_args phandle_args;
 	int reg;
@@ -1304,6 +1305,8 @@ static int device_get_phy_addr(struct udevice *dev)
 		debug("Failed to find phy-handle");
 		return -ENODEV;
 	}
+
+	priv->phy_of_node = phandle_args.node;
 
 	reg = ofnode_read_u32_default(phandle_args.node, "reg", 0);
 
@@ -1315,7 +1318,7 @@ static int fec_phy_init(struct fec_priv *priv, struct udevice *dev)
 	struct phy_device *phydev;
 	int addr;
 
-	addr = device_get_phy_addr(dev);
+	addr = device_get_phy_addr(priv, dev);
 #ifdef CONFIG_FEC_MXC_PHYADDR
 	addr = CONFIG_FEC_MXC_PHYADDR;
 #endif
@@ -1325,6 +1328,7 @@ static int fec_phy_init(struct fec_priv *priv, struct udevice *dev)
 		return -ENODEV;
 
 	priv->phydev = phydev;
+	priv->phydev->node = priv->phy_of_node;
 	phy_config(phydev);
 
 	return 0;
@@ -1530,7 +1534,7 @@ static int fecmxc_ofdata_to_platdata(struct udevice *dev)
 	struct fec_priv *priv = dev_get_priv(dev);
 	const char *phy_mode;
 
-	pdata->iobase = (phys_addr_t)devfdt_get_addr(dev);
+	pdata->iobase = dev_read_addr(dev);
 	priv->eth = (struct ethernet_regs *)pdata->iobase;
 
 	pdata->phy_interface = -1;

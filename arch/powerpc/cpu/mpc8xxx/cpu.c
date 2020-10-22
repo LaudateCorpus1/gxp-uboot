@@ -343,11 +343,12 @@ int fixup_cpu(void)
 	return 0;
 }
 
+#ifndef CONFIG_DM_ETH
 /*
  * Initializes on-chip ethernet controllers.
  * to override, implement board_eth_init()
  */
-int cpu_eth_init(bd_t *bis)
+int cpu_eth_init(struct bd_info *bis)
 {
 #if defined(CONFIG_ETHER_ON_FCC)
 	fec_initialize(bis);
@@ -370,3 +371,4 @@ int cpu_eth_init(bd_t *bis)
 #endif
 	return 0;
 }
+#endif

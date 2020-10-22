@@ -30,7 +30,6 @@ obj-y += charset.o
 endif
 endif
 obj-$(CONFIG_USB_TTY) += circbuf.o
-obj-y += crc7.o
 obj-y += crc8.o
 obj-y += crc16.o
 obj-$(CONFIG_ERRNO_STR) += errno_str.o
@@ -62,6 +61,7 @@ obj-$(CONFIG_$(SPL_)MD5) += md5.o
 obj-$(CONFIG_$(SPL_)RSA) += rsa/
 obj-$(CONFIG_SHA1) += sha1.o
 obj-$(CONFIG_SHA256) += sha256.o
+obj-$(CONFIG_SHA512_ALGO) += sha512.o
 
 obj-$(CONFIG_$(SPL_)ZLIB) += zlib/
 obj-$(CONFIG_$(SPL_)ZSTD) += zstd/
@@ -90,6 +90,7 @@ obj-y += errno.o
 obj-y += display_options.o
 CFLAGS_display_options.o := $(if $(BUILD_TAG),-DBUILD_TAG='"$(BUILD_TAG)"')
 obj-$(CONFIG_BCH) += bch.o
+obj-$(CONFIG_MMC_SPI) += crc7.o
 obj-y += crc32.o
 obj-$(CONFIG_CRC32C) += crc32c.o
 obj-y += ctype.o
@@ -122,6 +123,7 @@ else
 # Main U-Boot always uses the full printf support
 obj-y += vsprintf.o strto.o
 obj-$(CONFIG_OID_REGISTRY) += oid_registry.o
+obj-$(CONFIG_SSCANF) += sscanf.o
 endif
 
 obj-y += date.o

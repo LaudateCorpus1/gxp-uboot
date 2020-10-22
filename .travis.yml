@@ -23,7 +23,6 @@ addons:
     - build-essential
     - libsdl2-dev
     - python
-    - python-pyelftools
     - python3-sphinx
     - python3-virtualenv
     - python3-pip
@@ -52,6 +51,7 @@ addons:
     - sbsigntool
     - fakeroot
     - mtd-utils
+    - squashfs-tools
 
 install:
  # Clone uboot-test-hooks
@@ -204,12 +204,12 @@ before_script:
        popd;
     fi
   - if [[ "${TEST_PY_BD}" == "qemu-riscv32_spl" ]]; then
-       wget -O - https://github.com/riscv/opensbi/releases/download/v0.6/opensbi-0.6-rv32-bin.tar.xz | tar -C /tmp -xJ;
-       export OPENSBI=/tmp/opensbi-0.6-rv32-bin/platform/qemu/virt/firmware/fw_dynamic.bin;
+       wget -O - https://github.com/riscv/opensbi/releases/download/v0.8/opensbi-0.8-rv-bin.tar.xz | tar -C /tmp -xJ;
+       export OPENSBI=/tmp/opensbi-0.8-rv-bin/share/opensbi/ilp32/generic/firmware/fw_dynamic.bin;
     fi
   - if [[ "${TEST_PY_BD}" == "qemu-riscv64_spl" ]]; then
-       wget -O - https://github.com/riscv/opensbi/releases/download/v0.6/opensbi-0.6-rv64-bin.tar.xz | tar -C /tmp -xJ;
-       export OPENSBI=/tmp/opensbi-0.6-rv64-bin/platform/qemu/virt/firmware/fw_dynamic.bin;
+       wget -O - https://github.com/riscv/opensbi/releases/download/v0.8/opensbi-0.8-rv-bin.tar.xz | tar -C /tmp -xJ;
+       export OPENSBI=/tmp/opensbi-0.8-rv-bin/share/opensbi/lp64/generic/firmware/fw_dynamic.bin;
     fi
 
 script:
@@ -250,14 +250,15 @@ script:
      virtualenv -p /usr/bin/python3 /tmp/venv;
      . /tmp/venv/bin/activate;
      pip install -r test/py/requirements.txt;
-     ./test/py/test.py --bd ${TEST_PY_BD} ${TEST_PY_ID}
+     ./test/py/test.py -ra --bd ${TEST_PY_BD} ${TEST_PY_ID}
        ${TEST_PY_TEST_SPEC:+"-k ${TEST_PY_TEST_SPEC}"}
        --build-dir "$UBOOT_TRAVIS_BUILD_DIR" || exit;
      if [[ -n "${TEST_PY_TOOLS}" ]]; then
        export PYTHONPATH="${UBOOT_TRAVIS_BUILD_DIR}/scripts/dtc/pylibfdt";
        export PATH="${UBOOT_TRAVIS_BUILD_DIR}/scripts/dtc:${PATH}";
+       pip install pyelftools &&
        ./tools/binman/binman --toolpath ${UBOOT_TRAVIS_BUILD_DIR}/tools test &&
-       ./tools/patman/patman --test &&
+       ./tools/patman/patman test &&
        ./tools/buildman/buildman -t &&
        ./tools/dtoc/dtoc -t &&
        make testconfig;
@@ -573,6 +574,34 @@ matrix:
           TEST_PY_TEST_SPEC="not sleep"
           QEMU_TARGET="mips64el-softmmu"
           TOOLCHAIN="mips"
+    - name: "test/py qemu-malta"
+      env:
+        - TEST_PY_BD="malta"
+          TEST_PY_TEST_SPEC="not sleep and not efi"
+          TEST_PY_ID="--id qemu"
+          QEMU_TARGET="mips-softmmu"
+          TOOLCHAIN="mips"
+    - name: "test/py qemu-maltael"
+      env:
+        - TEST_PY_BD="maltael"
+          TEST_PY_TEST_SPEC="not sleep and not efi"
+          TEST_PY_ID="--id qemu"
+          QEMU_TARGET="mipsel-softmmu"
+          TOOLCHAIN="mips"
+    - name: "test/py qemu-malta64"
+      env:
+        - TEST_PY_BD="malta64"
+          TEST_PY_TEST_SPEC="not sleep and not efi"
+          TEST_PY_ID="--id qemu"
+          QEMU_TARGET="mips64-softmmu"
+          TOOLCHAIN="mips"
+    - name: "test/py qemu-malta64el"
+      env:
+        - TEST_PY_BD="malta64el"
+          TEST_PY_TEST_SPEC="not sleep and not efi"
+          TEST_PY_ID="--id qemu"
+          QEMU_TARGET="mips64el-softmmu"
+          TOOLCHAIN="mips"
     - name: "test/py qemu-ppce500"
       env:
         - TEST_PY_BD="qemu-ppce500"
@@ -617,6 +646,34 @@ matrix:
           QEMU_TARGET="x86_64-softmmu"
           TOOLCHAIN="i386"
           BUILD_ROM="yes"
+    - name: "test/py r2dplus_i82557c"
+      env:
+        - TEST_PY_BD="r2dplus"
+          TEST_PY_ID="--id i82557c_qemu"
+          QEMU_TARGET="sh4-softmmu"
+          BUILDMAN="sh -x arm"
+          TOOLCHAIN="sh"
+    - name: "test/py r2dplus_pcnet"
+      env:
+        - TEST_PY_BD="r2dplus"
+          TEST_PY_ID="--id pcnet_qemu"
+          QEMU_TARGET="sh4-softmmu"
+          BUILDMAN="sh -x arm"
+          TOOLCHAIN="sh"
+    - name: "test/py r2dplus_rtl8139"
+      env:
+        - TEST_PY_BD="r2dplus"
+          TEST_PY_ID="--id rtl8139_qemu"
+          QEMU_TARGET="sh4-softmmu"
+          BUILDMAN="sh -x arm"
+          TOOLCHAIN="sh"
+    - name: "test/py r2dplus_tulip"
+      env:
+        - TEST_PY_BD="r2dplus"
+          TEST_PY_ID="--id tulip_qemu"
+          QEMU_TARGET="sh4-softmmu"
+          BUILDMAN="sh -x arm"
+          TOOLCHAIN="sh"
     - name: "test/py xilinx_zynq_virt"
       env:
         - TEST_PY_BD="xilinx_zynq_virt"

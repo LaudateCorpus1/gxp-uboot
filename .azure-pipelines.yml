@@ -1,7 +1,8 @@
 variables:
   windows_vm: vs2017-win2016
   ubuntu_vm: ubuntu-18.04
-  ci_runner_image: trini/u-boot-gitlab-ci-runner:bionic-20200403-27Apr2020
+  macos_vm: macOS-10.15
+  ci_runner_image: trini/u-boot-gitlab-ci-runner:bionic-20200807-02Sep2020
   # Add '-u 0' options for Azure pipelines, otherwise we get "permission
   # denied" error when it tries to "useradd -m -u 1001 vsts_azpcontainer",
   # since our $(ci_runner_image) user is not root.
@@ -13,36 +14,40 @@ jobs:
     displayName: 'Ensure host tools build for Windows'
     pool:
       vmImage: $(windows_vm)
-    strategy:
-      matrix:
-        i686:
-          MSYS_DIR: msys32
-          BASE_REPO: msys2-ci-base-i686
-        x86_64:
-          MSYS_DIR: msys64
-          BASE_REPO: msys2-ci-base
     steps:
-      - script: |
-          git clone https://github.com/msys2/$(BASE_REPO).git %CD:~0,2%\$(MSYS_DIR)
+      - powershell: |
+          (New-Object Net.WebClient).DownloadFile("https://github.com/msys2/msys2-installer/releases/download/2020-07-20/msys2-base-x86_64-20200720.sfx.exe", "sfx.exe")
         displayName: 'Install MSYS2'
       - script: |
-          set PATH=%CD:~0,2%\$(MSYS_DIR)\usr\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem
-          %CD:~0,2%\$(MSYS_DIR)\usr\bin\pacman --noconfirm -Syyuu
+          sfx.exe -y -o%CD:~0,2%\
+          %CD:~0,2%\msys64\usr\bin\bash -lc "pacman --noconfirm -Syyuu"
         displayName: 'Update MSYS2'
       - script: |
-          set PATH=%CD:~0,2%\$(MSYS_DIR)\usr\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem
-          %CD:~0,2%\$(MSYS_DIR)\usr\bin\pacman --noconfirm --needed -S make gcc bison diffutils openssl-devel
+          %CD:~0,2%\msys64\usr\bin\bash -lc "pacman --noconfirm --needed -S make gcc bison flex diffutils openssl-devel"
         displayName: 'Install Toolchain'
       - script: |
-          set PATH=C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem
           echo make tools-only_defconfig tools-only NO_SDL=1 > build-tools.sh
-          %CD:~0,2%\$(MSYS_DIR)\usr\bin\bash -lc "bash build-tools.sh"
+          %CD:~0,2%\msys64\usr\bin\bash -lc "bash build-tools.sh"
         displayName: 'Build Host Tools'
         env:
           # Tell MSYS2 we need a POSIX emulation layer
           MSYSTEM: MSYS
           # Tell MSYS2 not to ‘cd’ our startup directory to HOME
           CHERE_INVOKING: yes
+
+  - job: tools_only_macOS
+    displayName: 'Ensure host tools build for macOS X'
+    pool:
+      vmImage: $(macos_vm)
+    steps:
+      - script: brew install make
+        displayName: Brew install dependencies
+      - script: |
+          gmake tools-only_config tools-only NO_SDL=1 \
+            HOSTCFLAGS="-I/usr/local/opt/openssl@1.1/include" \
+            HOSTLDFLAGS="-L/usr/local/opt/openssl@1.1/lib" \
+            -j$(sysctl -n hw.logicalcpu)
+        displayName: 'Perform tools-only build'
 
   - job: cppcheck
     displayName: 'Static code analysis with cppcheck'
@@ -143,7 +148,7 @@ jobs:
           ./tools/binman/binman --toolpath ${UBOOT_TRAVIS_BUILD_DIR}/tools test
           ./tools/buildman/buildman -t
           ./tools/dtoc/dtoc -t
-          ./tools/patman/patman --test
+          ./tools/patman/patman test
           make O=${UBOOT_TRAVIS_BUILD_DIR} testconfig
           EOF
           cat build.sh
@@ -211,6 +216,22 @@ jobs:
         qemu_mips64el:
           TEST_PY_BD: "qemu_mips64el"
           TEST_PY_TEST_SPEC: "not sleep"
+        qemu_malta:
+          TEST_PY_BD: "malta"
+          TEST_PY_ID: "--id qemu"
+          TEST_PY_TEST_SPEC: "not sleep and not efi"
+        qemu_maltael:
+          TEST_PY_BD: "maltael"
+          TEST_PY_ID: "--id qemu"
+          TEST_PY_TEST_SPEC: "not sleep and not efi"
+        qemu_malta64:
+          TEST_PY_BD: "malta64"
+          TEST_PY_ID: "--id qemu"
+          TEST_PY_TEST_SPEC: "not sleep and not efi"
+        qemu_malta64el:
+          TEST_PY_BD: "malta64el"
+          TEST_PY_ID: "--id qemu"
+          TEST_PY_TEST_SPEC: "not sleep and not efi"
         qemu_ppce500:
           TEST_PY_BD: "qemu-ppce500"
           TEST_PY_TEST_SPEC: "not sleep"
@@ -232,6 +253,18 @@ jobs:
         qemu_x86_64:
           TEST_PY_BD: "qemu-x86_64"
           TEST_PY_TEST_SPEC: "not sleep"
+        r2dplus_i82557c:
+          TEST_PY_BD: "r2dplus"
+          TEST_PY_ID: "--id i82557c_qemu"
+        r2dplus_pcnet:
+          TEST_PY_BD: "r2dplus"
+          TEST_PY_ID: "--id pcnet_qemu"
+        r2dplus_rtl8139:
+          TEST_PY_BD: "r2dplus"
+          TEST_PY_ID: "--id rtl8139_qemu"
+        r2dplus_tulip:
+          TEST_PY_BD: "r2dplus"
+          TEST_PY_ID: "--id tulip_qemu"
         xilinx_zynq_virt:
           TEST_PY_BD: "xilinx_zynq_virt"
           TEST_PY_ID: "--id qemu"
@@ -263,29 +296,31 @@ jobs:
           ln -s travis-ci /tmp/uboot-test-hooks/py/`hostname`
           grub-mkimage --prefix=\"\" -o ~/grub_x86.efi -O i386-efi normal  echo lsefimmap lsefi lsefisystab efinet tftp minicmd
           grub-mkimage --prefix=\"\" -o ~/grub_x64.efi -O x86_64-efi normal  echo lsefimmap lsefi lsefisystab efinet tftp minicmd
-          cp /opt/grub/grubriscv64.efi ~/grub_riscv64.efi
-          cp /opt/grub/grubriscv32.efi ~/grub_riscv32.efi
-          cp /opt/grub/grubaa64.efi ~/grub_arm64.efi
-          cp /opt/grub/grubarm.efi ~/grub_arm.efi
           if [[ "${TEST_PY_BD}" == "qemu-riscv32_spl" ]]; then
-              wget -O - https://github.com/riscv/opensbi/releases/download/v0.6/opensbi-0.6-rv32-bin.tar.xz | tar -C /tmp -xJ;
-              export OPENSBI=/tmp/opensbi-0.6-rv32-bin/platform/qemu/virt/firmware/fw_dynamic.bin;
+              wget -O - https://github.com/riscv/opensbi/releases/download/v0.8/opensbi-0.8-rv-bin.tar.xz | tar -C /tmp -xJ;
+              export OPENSBI=/tmp/opensbi-0.8-rv-bin/share/opensbi/ilp32/generic/firmware/fw_dynamic.bin;
           fi
           if [[ "${TEST_PY_BD}" == "qemu-riscv64_spl" ]]; then
-              wget -O - https://github.com/riscv/opensbi/releases/download/v0.6/opensbi-0.6-rv64-bin.tar.xz | tar -C /tmp -xJ;
-              export OPENSBI=/tmp/opensbi-0.6-rv64-bin/platform/qemu/virt/firmware/fw_dynamic.bin;
+              wget -O - https://github.com/riscv/opensbi/releases/download/v0.8/opensbi-0.8-rv-bin.tar.xz | tar -C /tmp -xJ;
+              export OPENSBI=/tmp/opensbi-0.8-rv-bin/share/opensbi/lp64/generic/firmware/fw_dynamic.bin;
           fi
           # the below corresponds to .gitlab-ci.yml "script"
           cd ${WORK_DIR}
           export UBOOT_TRAVIS_BUILD_DIR=/tmp/${TEST_PY_BD};
           tools/buildman/buildman -o ${UBOOT_TRAVIS_BUILD_DIR} -w -E -W -e --board ${TEST_PY_BD} ${OVERRIDE}
+          cp ~/grub_x86.efi ${UBOOT_TRAVIS_BUILD_DIR}/
+          cp ~/grub_x64.efi ${UBOOT_TRAVIS_BUILD_DIR}/
+          cp /opt/grub/grubriscv64.efi ${UBOOT_TRAVIS_BUILD_DIR}/grub_riscv64.efi
+          cp /opt/grub/grubriscv32.efi ${UBOOT_TRAVIS_BUILD_DIR}/grub_riscv32.efi
+          cp /opt/grub/grubaa64.efi ${UBOOT_TRAVIS_BUILD_DIR}/grub_arm64.efi
+          cp /opt/grub/grubarm.efi ${UBOOT_TRAVIS_BUILD_DIR}/grub_arm.efi
           virtualenv -p /usr/bin/python3 /tmp/venv
           . /tmp/venv/bin/activate
           pip install -r test/py/requirements.txt
           export PATH=/opt/qemu/bin:/tmp/uboot-test-hooks/bin:${PATH};
           export PYTHONPATH=/tmp/uboot-test-hooks/py/travis-ci;
           # "${var:+"-k $var"}" expands to "" if $var is empty, "-k $var" if not
-          ./test/py/test.py --bd ${TEST_PY_BD} ${TEST_PY_ID} ${TEST_PY_TEST_SPEC:+"-k ${TEST_PY_TEST_SPEC}"} --build-dir "$UBOOT_TRAVIS_BUILD_DIR";
+          ./test/py/test.py -ra --bd ${TEST_PY_BD} ${TEST_PY_ID} ${TEST_PY_TEST_SPEC:+"-k ${TEST_PY_TEST_SPEC}"} --build-dir "$UBOOT_TRAVIS_BUILD_DIR";
           # the below corresponds to .gitlab-ci.yml "after_script"
           rm -rf /tmp/uboot-test-hooks /tmp/venv
           EOF

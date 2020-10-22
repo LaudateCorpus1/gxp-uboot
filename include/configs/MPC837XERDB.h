@@ -322,10 +322,6 @@
  */
 #define CONFIG_BOOTP_BOOTFILESIZE
 
-/*
- * Command line configuration.
- */
-
 #undef CONFIG_WATCHDOG		/* watchdog disabled */
 
 #ifdef CONFIG_MMC
@@ -353,7 +349,6 @@
 /*
  * Environment Configuration
  */
-#define CONFIG_ENV_OVERWRITE
 
 #define CONFIG_HAS_FSL_DR_USB
 #define CONFIG_USB_EHCI_FSL

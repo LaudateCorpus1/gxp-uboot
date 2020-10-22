@@ -54,7 +54,7 @@ binman_sym_declare(ulong, spl, size);
 #endif
 
 /* Define board data structure */
-static bd_t bdata __attribute__ ((section(".data")));
+static struct bd_info bdata __attribute__ ((section(".data")));
 
 /*
  * Board-specific Platform code can reimplement show_boot_progress () if needed
@@ -552,7 +552,9 @@ static int boot_from_devices(struct spl_image_info *spl_image,
 		struct spl_image_loader *loader;
 
 		loader = spl_ll_find_loader(spl_boot_list[i]);
-#if defined(CONFIG_SPL_SERIAL_SUPPORT) && defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
+#if defined(CONFIG_SPL_SERIAL_SUPPORT) \
+    && defined(CONFIG_SPL_LIBCOMMON_SUPPORT)    \
+    && !defined(CONFIG_SILENT_CONSOLE)
 		if (loader)
 			printf("Trying to boot from %s\n", loader->name);
 		else

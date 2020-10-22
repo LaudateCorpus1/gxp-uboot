@@ -8,6 +8,7 @@ Board-specific doc
 
    actions/index
    AndesTech/index
+   amlogic/index
    atmel/index
    coreboot/index
    emulation/index
@@ -17,6 +18,9 @@ Board-specific doc
    renesas/index
    rockchip/index
    sifive/index
+   sipeed/index
    st/index
+   tbs/index
    toradex/index
+   xen/index
    xilinx/index

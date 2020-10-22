@@ -15,12 +15,13 @@ obj-$(CONFIG_SIFIVE_CLINT) += sifive_clint.o
 obj-$(CONFIG_ANDES_PLIC) += andes_plic.o
 obj-$(CONFIG_ANDES_PLMT) += andes_plmt.o
 else
-obj-$(CONFIG_RISCV_RDTIME) += rdtime.o
 obj-$(CONFIG_SBI) += sbi.o
 obj-$(CONFIG_SBI_IPI) += sbi_ipi.o
 endif
 obj-y	+= interrupts.o
+ifeq ($(CONFIG_$(SPL_)SYSRESET),)
 obj-y	+= reset.o
+endif
 obj-y   += setjmp.o
 obj-$(CONFIG_$(SPL_)SMP) += smp.o
 obj-$(CONFIG_SPL_BUILD)	+= spl.o

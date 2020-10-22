@@ -46,10 +46,6 @@
 #define CONFIG_BOOTBLOCK		"10"
 #define CONFIG_ENV_COMMON_BOOT		"${console} ${meminfo}"
 
-#define CONFIG_SYS_MMC_ENV_DEV		CONFIG_MMC_DEFAULT_DEV
-
-#define CONFIG_ENV_OVERWRITE
-
 /* Tizen - partitions definitions */
 #define PARTS_CSA		"csa-mmc"
 #define PARTS_BOOT		"boot"
@@ -182,10 +178,8 @@
 #define LCD_BPP			LCD_COLOR16
 
 /* LCD */
-#define CONFIG_BMP_16BPP
 #define CONFIG_FB_ADDR		0x52504000
 #define CONFIG_EXYNOS_MIPI_DSIM
-#define CONFIG_VIDEO_BMP_GZIP
 #define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE  ((500 * 160 * 4) + 54)
 
 #endif	/* __CONFIG_H */

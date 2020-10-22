@@ -45,7 +45,11 @@ const char *log_get_cat_name(enum log_category_t cat)
 	if (cat >= LOGC_NONE)
 		return log_cat_name[cat - LOGC_NONE];
 
+#if CONFIG_IS_ENABLED(DM)
 	name = uclass_get_name((enum uclass_id)cat);
+#else
+	name = NULL;
+#endif
 
 	return name ? name : "<missing>";
 }
@@ -153,6 +157,9 @@ static bool log_passes_filters(struct log_device *ldev, struct log_rec *rec)
 {
 	struct log_filter *filt;
 
+	if (rec->force_debug)
+		return true;
+
 	/* If there are no filters, filter on the default log level */
 	if (list_empty(&ldev->filter_head)) {
 		if (rec->level > gd->default_log_level)
@@ -187,12 +194,24 @@ static bool log_passes_filters(struct log_device *ldev, struct log_rec *rec)
 static int log_dispatch(struct log_rec *rec)
 {
 	struct log_device *ldev;
+	static int processing_msg;
 
+	/*
+	 * When a log driver writes messages (e.g. via the network stack) this
+	 * may result in further generated messages. We cannot process them here
+	 * as this might result in infinite recursion.
+	 */
+	if (processing_msg)
+		return 0;
+
+	/* Emit message */
+	processing_msg = 1;
 	list_for_each_entry(ldev, &gd->log_head, sibling_node) {
-		if (log_passes_filters(ldev, rec))
+		if ((ldev->flags & LOGDF_ENABLE) &&
+		    log_passes_filters(ldev, rec))
 			ldev->drv->emit(ldev, rec);
 	}
-
+	processing_msg = 0;
 	return 0;
 }
 
@@ -204,7 +223,8 @@ int _log(enum log_category_t cat, enum log_level_t level, const char *file,
 	va_list args;
 
 	rec.cat = cat;
-	rec.level = level;
+	rec.level = level & LOGL_LEVEL_MASK;
+	rec.force_debug = level & LOGL_FORCE_DEBUG;
 	rec.file = file;
 	rec.line = line;
 	rec.func = func;
@@ -288,6 +308,44 @@ int log_remove_filter(const char *drv_name, int filter_num)
 	return -ENOENT;
 }
 
+/**
+ * log_find_device_by_drv() - Find a device by its driver
+ *
+ * @drv: Log driver
+ * @return Device associated with that driver, or NULL if not found
+ */
+static struct log_device *log_find_device_by_drv(struct log_driver *drv)
+{
+	struct log_device *ldev;
+
+	list_for_each_entry(ldev, &gd->log_head, sibling_node) {
+		if (ldev->drv == drv)
+			return ldev;
+	}
+	/*
+	 * It is quite hard to pass an invalid driver since passing an unknown
+	 * LOG_GET_DRIVER(xxx) would normally produce a compilation error. But
+	 * it is possible to pass NULL, for example, so this
+	 */
+
+	return NULL;
+}
+
+int log_device_set_enable(struct log_driver *drv, bool enable)
+{
+	struct log_device *ldev;
+
+	ldev = log_find_device_by_drv(drv);
+	if (!ldev)
+		return -ENOENT;
+	if (enable)
+		ldev->flags |= LOGDF_ENABLE;
+	else
+		ldev->flags &= ~LOGDF_ENABLE;
+
+	return 0;
+}
+
 int log_init(void)
 {
 	struct log_driver *drv = ll_entry_start(struct log_driver, log_driver);
@@ -310,6 +368,7 @@ int log_init(void)
 		}
 		INIT_LIST_HEAD(&ldev->filter_head);
 		ldev->drv = drv;
+		ldev->flags = drv->flags;
 		list_add_tail(&ldev->sibling_node,
 			      (struct list_head *)&gd->log_head);
 		drv++;
@@ -317,7 +376,7 @@ int log_init(void)
 	gd->flags |= GD_FLG_LOG_READY;
 	if (!gd->default_log_level)
 		gd->default_log_level = CONFIG_LOG_DEFAULT_LEVEL;
-	gd->log_fmt = LOGF_DEFAULT;
+	gd->log_fmt = log_get_default_format();
 
 	return 0;
 }

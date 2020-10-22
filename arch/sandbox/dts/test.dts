@@ -2,6 +2,7 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/gpio/sandbox-gpio.h>
+#include <dt-bindings/pinctrl/sandbox-pinmux.h>
 
 / {
 	model = "sandbox";
@@ -23,8 +24,8 @@
 		pci0 = &pci0;
 		pci1 = &pci1;
 		pci2 = &pci2;
-		remoteproc1 = &rproc_1;
-		remoteproc2 = &rproc_2;
+		remoteproc0 = &rproc_1;
+		remoteproc1 = &rproc_2;
 		rtc0 = &rtc_0;
 		rtc1 = &rtc_1;
 		spi0 = "/spi@0";
@@ -49,6 +50,20 @@
 	audio: audio-codec {
 		compatible = "sandbox,audio-codec";
 		#sound-dai-cells = <1>;
+	};
+
+	buttons {
+		compatible = "gpio-keys";
+
+		btn1 {
+			gpios = <&gpio_a 3 0>;
+			label = "button1";
+		};
+
+		btn2 {
+			gpios = <&gpio_a 4 0>;
+			label = "button2";
+		};
 	};
 
 	cros_ec: cros-ec {
@@ -107,11 +122,17 @@
 			<&gpio_c 5 GPIO_IN>,
 			<&gpio_c 6 (GPIO_ACTIVE_LOW|GPIO_OUT|GPIO_OPEN_DRAIN)>,
 			<&gpio_c 7 (GPIO_ACTIVE_LOW|GPIO_OUT|GPIO_OPEN_SOURCE)>;
+		test4-gpios = <&gpio_a 14>, <&gpio_b 4 1 3 2 1>;
+		test5-gpios = <&gpio_a 19>;
+
 		int-value = <1234>;
 		uint-value = <(-1234)>;
 		int64-value = /bits/ 64 <0x1111222233334444>;
 		int-array = <5678 9123 4567>;
+		str-value = "test string";
 		interrupts-extended = <&irq 3 0>;
+		acpi,name = "GHIJ";
+		phandle-value = <&gpio_c 10>, <0xFFFFFFFF 20>, <&gpio_a 30>;
 	};
 
 	junk {
@@ -133,6 +154,7 @@
 	};
 
 	bind-test {
+		compatible = "simple-bus";
 		bind-test-child1 {
 			compatible = "sandbox,phy";
 			#phy-cells = <1>;
@@ -253,12 +275,26 @@
 		compatible = "denx,u-boot-devres-test";
 	};
 
-	acpi-test {
-		compatible = "denx,u-boot-acpi-test";
+	another-test {
+		reg = <0 2>;
+		compatible = "denx,u-boot-fdt-test";
+		test4-gpios = <&gpio_a 14>, <&gpio_b 4 1 3 2 1>;
+		test5-gpios = <&gpio_a 19>;
 	};
 
-	acpi-test2 {
+	acpi_test1: acpi-test {
 		compatible = "denx,u-boot-acpi-test";
+		acpi-ssdt-test-data = "ab";
+		acpi-dsdt-test-data = "hi";
+		child {
+			compatible = "denx,u-boot-acpi-test";
+		};
+	};
+
+	acpi_test2: acpi-test2 {
+		compatible = "denx,u-boot-acpi-test";
+		acpi-ssdt-test-data = "cd";
+		acpi-dsdt-test-data = "jk";
 	};
 
 	clocks {
@@ -332,6 +368,37 @@
 		sandbox_firmware: sandbox-firmware {
 			compatible = "sandbox,firmware";
 		};
+
+		sandbox-scmi-agent@0 {
+			compatible = "sandbox,scmi-agent";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			clk_scmi0: protocol@14 {
+				reg = <0x14>;
+				#clock-cells = <1>;
+			};
+
+			reset_scmi0: protocol@16 {
+				reg = <0x16>;
+				#reset-cells = <1>;
+			};
+		};
+
+		sandbox-scmi-agent@1 {
+			compatible = "sandbox,scmi-agent";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			clk_scmi1: protocol@14 {
+				reg = <0x14>;
+				#clock-cells = <1>;
+			};
+
+			protocol@10 {
+				reg = <0x10>;
+			};
+		};
 	};
 
 	pinctrl-gpio {
@@ -343,6 +410,26 @@
 			#gpio-cells = <1>;
 			gpio-bank-name = "a";
 			sandbox,gpio-count = <20>;
+			hog_input_active_low {
+				gpio-hog;
+				input;
+				gpios = <10 GPIO_ACTIVE_LOW>;
+			};
+			hog_input_active_high {
+				gpio-hog;
+				input;
+				gpios = <11 GPIO_ACTIVE_HIGH>;
+			};
+			hog_output_low {
+				gpio-hog;
+				output-low;
+				gpios = <12 GPIO_ACTIVE_HIGH>;
+			};
+			hog_output_high {
+				gpio-hog;
+				output-high;
+				gpios = <13 GPIO_ACTIVE_HIGH>;
+			};
 		};
 
 		gpio_b: extra-gpios {
@@ -372,6 +459,14 @@
 			reg = <0x2c>;
 			compatible = "i2c-eeprom";
 			sandbox,emul = <&emul_eeprom>;
+			partitions {
+				compatible = "fixed-partitions";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				bootcount_i2c: bootcount@10 {
+					reg = <10 2>;
+				};
+			};
 		};
 
 		rtc_0: rtc@43 {
@@ -419,6 +514,11 @@
 		offset = <0x13>;
 	};
 
+	bootcount {
+		compatible = "u-boot,bootcount-i2c-eeprom";
+		i2c-eeprom = <&bootcount_i2c>;
+	};
+
 	adc@0 {
 		compatible = "sandbox,adc";
 		vdd-supply = <&buck2>;
@@ -459,7 +559,7 @@
 
 		default_off {
 			gpios = <&gpio_a 6 0>;
-			label = "sandbox:default_off";
+			/* label intentionally omitted */
 			default-state = "off";
 		};
 	};
@@ -476,7 +576,9 @@
 	};
 
 	cpus {
+		timebase-frequency = <2000000>;
 		cpu-test1 {
+			timebase-frequency = <3000000>;
 			compatible = "sandbox,cpu_sandbox";
 			u-boot,dm-pre-reloc;
 		};
@@ -490,6 +592,10 @@
 			compatible = "sandbox,cpu_sandbox";
 			u-boot,dm-pre-reloc;
 		};
+	};
+
+	chipid: chipid {
+		compatible = "sandbox,soc";
 	};
 
 	i2s: i2s {
@@ -605,8 +711,9 @@
 		bus-range = <0x00 0xff>;
 		#address-cells = <3>;
 		#size-cells = <2>;
-		ranges = <0x02000000 0 0x30000000 0x30000000 0 0x2000
-				0x01000000 0 0x40000000 0x40000000 0 0x2000>;
+		ranges = <0x02000000 0 0x30000000 0x30000000 0 0x2000 // MEM0
+			  0x02000000 0 0x31000000 0x31000000 0 0x2000 // MEM1
+			  0x01000000 0 0x40000000 0x40000000 0 0x2000>;
 		sandbox,dev-info = <0x08 0x00 0x1234 0x5678
 				    0x0c 0x00 0x1234 0x5678
 				    0x10 0x00 0x1234 0x5678>;
@@ -777,9 +884,14 @@
 			0x58 8>;
 	};
 
-	timer {
+	timer@0 {
 		compatible = "sandbox,timer";
 		clock-frequency = <1000000>;
+	};
+
+	timer@1 {
+		compatible = "sandbox,timer";
+		sandbox,timebase-frequency-fallback;
 	};
 
 	tpm2 {
@@ -810,6 +922,8 @@
 		hub {
 			compatible = "usb-hub";
 			usb,device-class = <9>;
+			#address-cells = <1>;
+			#size-cells = <0>;
 			hub-emul {
 				compatible = "sandbox,usb-hub";
 				#address-cells = <1>;
@@ -837,6 +951,13 @@
 					compatible = "sandbox,usb-keyb";
 				};
 
+			};
+
+			usbstor@1 {
+				reg = <1>;
+			};
+			usbstor@3 {
+				reg = <3>;
 			};
 		};
 	};
@@ -889,6 +1010,7 @@
 		setting = "sunrise ohoka";
 		other-node = "/some-bus/c-test@5";
 		int-values = <0x1937 72993>;
+		u-boot,acpi-ssdt-order = <&acpi_test2 &acpi_test1>;
 		chosen-test {
 			compatible = "denx,u-boot-fdt-test";
 			reg = <9 1>;
@@ -964,31 +1086,67 @@
 		compatible = "sandbox,virtio2";
 	};
 
+	sandbox_scmi {
+		compatible = "sandbox,scmi-devices";
+		clocks = <&clk_scmi0 7>, <&clk_scmi0 3>, <&clk_scmi1 1>;
+		resets = <&reset_scmi0 3>;
+	};
+
 	pinctrl {
 		compatible = "sandbox,pinctrl";
 
-		pinctrl-names = "default";
-		pinctrl-0 = <&gpios>;
+		pinctrl-names = "default", "alternate";
+		pinctrl-0 = <&pinctrl_gpios>, <&pinctrl_i2s>;
+		pinctrl-1 = <&pinctrl_spi>, <&pinctrl_i2c>;
 
-		gpios: gpios {
+		pinctrl_gpios: gpios {
 			gpio0 {
-				pins = "GPIO0";
+				pins = "P5";
+				function = "GPIO";
 				bias-pull-up;
 				input-disable;
 			};
 			gpio1 {
-				pins = "GPIO1";
+				pins = "P6";
+				function = "GPIO";
 				output-high;
 				drive-open-drain;
 			};
 			gpio2 {
-				pins = "GPIO2";
+				pinmux = <SANDBOX_PINMUX(7, SANDBOX_PINMUX_GPIO)>;
 				bias-pull-down;
 				input-enable;
 			};
 			gpio3 {
-				pins = "GPIO3";
+				pinmux = <SANDBOX_PINMUX(8, SANDBOX_PINMUX_GPIO)>;
 				bias-disable;
+			};
+		};
+
+		pinctrl_i2c: i2c {
+			groups {
+				groups = "I2C_UART";
+				function = "I2C";
+			};
+
+			pins {
+				pins = "P0", "P1";
+				drive-open-drain;
+			};
+		};
+
+		pinctrl_i2s: i2s {
+			groups = "SPI_I2S";
+			function = "I2S";
+		};
+
+		pinctrl_spi: spi {
+			groups = "SPI_I2S";
+			function = "SPI";
+
+			cs {
+				pinmux = <SANDBOX_PINMUX(5, SANDBOX_PINMUX_CS)>,
+					 <SANDBOX_PINMUX(6, SANDBOX_PINMUX_CS)>;
 			};
 		};
 	};
@@ -1028,6 +1186,40 @@
 
 	mdio: mdio-test {
 		compatible = "sandbox,mdio";
+	};
+
+	pm-bus-test {
+		compatible = "simple-pm-bus";
+		clocks = <&clk_sandbox 4>;
+		power-domains = <&pwrdom 1>;
+	};
+
+	resetc2: syscon-reset {
+		compatible = "syscon-reset";
+		#reset-cells = <1>;
+		regmap = <&syscon0>;
+		offset = <1>;
+		mask = <0x27FFFFFF>;
+		assert-high = <0>;
+	};
+
+	syscon-reset-test {
+		compatible = "sandbox,misc_sandbox";
+		resets = <&resetc2 15>, <&resetc2 30>, <&resetc2 60>;
+		reset-names = "valid", "no_mask", "out_of_range";
+	};
+
+	some_regmapped-bus {
+		#address-cells = <0x1>;
+		#size-cells = <0x1>;
+
+		ranges = <0x0 0x0 0x10>;
+		compatible = "simple-bus";
+
+		regmap-test_0 {
+			reg = <0 0x10>;
+			compatible = "sandbox,regmap_test";
+		};
 	};
 };
 

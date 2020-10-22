@@ -253,7 +253,7 @@ static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 	const void *data;
 	bool external_data = false;
 
-	if (IS_ENABLED(CONFIG_SPL_FPGA_SUPPORT) ||
+	if (IS_ENABLED(CONFIG_SPL_FPGA) ||
 	    (IS_ENABLED(CONFIG_SPL_OS_BOOT) && IS_ENABLED(CONFIG_SPL_GZIP))) {
 		if (fit_image_get_type(fit, node, &type))
 			puts("Cannot get image type.\n");
@@ -543,7 +543,7 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 		return -1;
 	}
 
-#ifdef CONFIG_SPL_FPGA_SUPPORT
+#ifdef CONFIG_SPL_FPGA
 	node = spl_fit_get_image_node(fit, images, "fpga", 0);
 	if (node >= 0) {
 		/* Load the image and set up the spl_image structure */
@@ -619,9 +619,12 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 	 * Booting a next-stage U-Boot may require us to append the FDT.
 	 * We allow this to fail, as the U-Boot image might embed its FDT.
 	 */
-	if (spl_image->os == IH_OS_U_BOOT)
-		spl_fit_append_fdt(spl_image, info, sector, fit,
-				   images, base_offset);
+	if (spl_image->os == IH_OS_U_BOOT) {
+		ret = spl_fit_append_fdt(spl_image, info, sector, fit,
+					 images, base_offset);
+		if (!IS_ENABLED(CONFIG_OF_EMBED) && ret < 0)
+			return ret;
+	}
 
 	firmware_node = node;
 	/* Now check if there are more images for us to load */

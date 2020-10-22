@@ -77,9 +77,6 @@
 #define CONFIG_SCSI_AHCI_PLAT
 
 #define CONFIG_SYS_SATA1			AHCI_BASE_ADDR1
-#ifndef CONFIG_CMD_EXT2
-#define CONFIG_CMD_EXT2
-#endif
 #define CONFIG_SYS_SCSI_MAX_SCSI_ID		1
 #define CONFIG_SYS_SCSI_MAX_LUN			1
 #define CONFIG_SYS_SCSI_MAX_DEVICE		(CONFIG_SYS_SCSI_MAX_SCSI_ID * \
@@ -132,13 +129,6 @@
 			"run scan_dev_for_boot; " \
 		  "fi; " \
 		"done\0" \
-	"scan_dev_for_boot=" \
-		"echo Scanning ${devtype} " \
-				"${devnum}:${distro_bootpart}...; " \
-		"for prefix in ${boot_prefixes}; do " \
-			"run scan_dev_for_scripts; " \
-		"done;" \
-		"\0" \
 	"boot_a_script=" \
 		"load ${devtype} ${devnum}:${distro_bootpart} " \
 			"${scriptaddr} ${prefix}${script}; " \

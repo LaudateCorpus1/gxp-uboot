@@ -32,7 +32,6 @@
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
 /* Serial console */
-#define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE		UART4_BASE
 #define CONFIG_SYS_BAUDRATE_TABLE	{9600, 19200, 38400, 57600, 115200}
 
@@ -49,8 +48,8 @@
 	"scriptaddr=" __stringify(CONFIG_LOADADDR) "\0" \
 	"fdtfile=undefined\0" \
 	"stdin=serial,usbkbd\0" \
-	"stdout=serial,vga\0" \
-	"stderr=serial,vga\0" \
+	"stdout=serial,vidconsole\0" \
+	"stderr=serial,vidconsole\0" \
 	"panel=HDMI\0" \
 	"autoload=no\0" \
 	"uImage=uImage-cm-fx6\0" \
@@ -204,10 +203,6 @@
 
 /* Display */
 #define CONFIG_IMX_HDMI
-
-#define CONFIG_SPLASH_SCREEN
-#define CONFIG_SPLASH_SOURCE
-#define CONFIG_VIDEO_BMP_RLE8
 
 #define CONFIG_VIDEO_LOGO
 #define CONFIG_VIDEO_BMP_LOGO

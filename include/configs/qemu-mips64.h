@@ -30,10 +30,6 @@
  */
 #define CONFIG_BOOTP_BOOTFILESIZE
 
-/*
- * Command line configuration.
- */
-
 #define CONFIG_DRIVER_NE2000
 #define CONFIG_DRIVER_NE2000_BASE	0xffffffffb4000300
 
@@ -87,8 +83,6 @@
 #define CONFIG_SYS_MAX_FLASH_SECT	128
 
 /* Address and size of Primary Environment Sector */
-
-#define CONFIG_ENV_OVERWRITE	1
 
 #define MEM_SIZE		128
 
