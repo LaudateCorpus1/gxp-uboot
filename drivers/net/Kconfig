@@ -556,6 +556,17 @@ config GMAC_ROCKCHIP
 	  This driver provides Rockchip SoCs network support based on the
 	  Synopsys Designware driver.
 
+config GXP_UMAC
+	bool "HPE GXP Ethernet MAC"
+	help
+	  This driver provides HPE GXP SoCs network support based on HPE UMAC driver.
+
+config GXP_UMAC_G10P
+	bool "Add support for Gen10 Plus"
+	depends on GXP_UMAC
+	help
+	  This will change the driver to work on Gen10 Plus SoCs, don't enable it for Gen10.
+
 config RENESAS_RAVB
 	bool "Renesas Ethernet AVB MAC"
 	depends on DM_ETH && RCAR_GEN3

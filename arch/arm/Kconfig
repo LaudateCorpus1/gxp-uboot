@@ -1787,6 +1787,12 @@ config TARGET_XENGUEST_ARM64
 	select LINUX_KERNEL_IMAGE_HEADER
 	select XEN_SERIAL
 	select SSCANF
+
+config ARCH_GXP
+	bool "Support HPE GXP SoCs"
+	select DM
+	select OF_CONTROL
+	imply CMD_DM
 endchoice
 
 config ARCH_SUPPORT_TFABOOT
@@ -1878,6 +1884,8 @@ source "arch/arm/mach-imx/imx8m/Kconfig"
 source "arch/arm/mach-imx/imxrt/Kconfig"
 
 source "arch/arm/mach-imx/mxs/Kconfig"
+
+source "arch/arm/mach-gxp/gxp/Kconfig"
 
 source "arch/arm/mach-omap2/Kconfig"
 

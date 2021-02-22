@@ -74,6 +74,7 @@ int smc911x_initialize(u8 dev_num, int base_addr);
 int uec_standard_init(struct bd_info *bis);
 int uli526x_initialize(struct bd_info *bis);
 int armada100_fec_register(unsigned long base_addr);
+int gxp_umac_register(struct bd_info *bis);
 
 /* Boards with PCI network controllers can call this from their board_eth_init()
  * function to initialize whatever's on board.
