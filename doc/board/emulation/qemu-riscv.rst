@@ -73,7 +73,7 @@ supported by U-Boot. Clone the OpenSBI repository and run the following command.
 
     git clone https://github.com/riscv/opensbi.git
     cd opensbi
-    make PLATFORM=qemu/virt
+    make PLATFORM=generic
 
 See the OpenSBI documentation for full details:
 https://github.com/riscv/opensbi/blob/master/docs/platform/qemu_virt.md
@@ -105,3 +105,11 @@ configurations are:
 
     qemu-system-riscv64 -nographic -machine virt -bios spl/u-boot-spl \
     -device loader,file=u-boot.itb,addr=0x80200000
+
+An attached disk can be emulated by adding::
+
+    -device ich9-ahci,id=ahci \
+    -drive if=none,file=riscv64.img,format=raw,id=mydisk \
+    -device ide-hd,drive=mydisk,bus=ahci.0
+
+You will have to run 'scsi scan' to use it.

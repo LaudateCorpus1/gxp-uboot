@@ -2,11 +2,11 @@
 #
 # (C) Copyright 2000-2007
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
-obj-$(CONFIG_DM_I2C) += i2c-uclass.o
+obj-$(CONFIG_$(SPL_)DM_I2C) += i2c-uclass.o
 ifdef CONFIG_ACPIGEN
-obj-$(CONFIG_DM_I2C) += acpi_i2c.o
+obj-$(CONFIG_$(SPL_)DM_I2C) += acpi_i2c.o
 endif
-obj-$(CONFIG_DM_I2C_GPIO) += i2c-gpio.o
+obj-$(CONFIG_$(SPL_)DM_I2C_GPIO) += i2c-gpio.o
 obj-$(CONFIG_$(SPL_)I2C_CROS_EC_TUNNEL) += cros_ec_tunnel.o
 obj-$(CONFIG_$(SPL_)I2C_CROS_EC_LDO) += cros_ec_ldo.o
 
@@ -32,13 +32,16 @@ obj-$(CONFIG_SYS_I2C_MESON) += meson_i2c.o
 obj-$(CONFIG_SYS_I2C_MVTWSI) += mvtwsi.o
 obj-$(CONFIG_SYS_I2C_MXC) += mxc_i2c.o
 obj-$(CONFIG_SYS_I2C_NEXELL) += nx_i2c.o
+obj-$(CONFIG_SYS_I2C_OCORES) += ocores_i2c.o
 obj-$(CONFIG_SYS_I2C_OCTEON) += octeon_i2c.o
 obj-$(CONFIG_SYS_I2C_OMAP24XX) += omap24xx_i2c.o
 obj-$(CONFIG_SYS_I2C_RCAR_I2C) += rcar_i2c.o
 obj-$(CONFIG_SYS_I2C_RCAR_IIC) += rcar_iic.o
 obj-$(CONFIG_SYS_I2C_ROCKCHIP) += rk_i2c.o
 obj-$(CONFIG_SYS_I2C_S3C24X0) += s3c24x0_i2c.o exynos_hs_i2c.o
+ifndef CONFIG_SPL_BUILD
 obj-$(CONFIG_SYS_I2C_SANDBOX) += sandbox_i2c.o i2c-emul-uclass.o
+endif
 obj-$(CONFIG_SYS_I2C_SH) += sh_i2c.o
 obj-$(CONFIG_SYS_I2C_SOFT) += soft_i2c.o
 obj-$(CONFIG_SYS_I2C_STM32F7) += stm32f7_i2c.o

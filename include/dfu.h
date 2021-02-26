@@ -33,6 +33,8 @@ enum dfu_layout {
 	DFU_FS_EXT3,
 	DFU_FS_EXT4,
 	DFU_RAM_ADDR,
+	DFU_SKIP,
+	DFU_SCRIPT,
 };
 
 enum dfu_op {
@@ -157,6 +159,9 @@ struct dfu_entity {
 
 	unsigned int inited:1;
 };
+
+struct list_head;
+extern struct list_head dfu_list;
 
 #ifdef CONFIG_SET_DFU_ALT_INFO
 /**
@@ -493,28 +498,54 @@ static inline int dfu_fill_entity_virt(struct dfu_entity *dfu, char *devstr,
 }
 #endif
 
+extern bool dfu_reinit_needed;
+
+#if CONFIG_IS_ENABLED(DFU_WRITE_ALT)
 /**
- * dfu_tftp_write() - write TFTP data to DFU medium
+ * dfu_write_by_name() - write data to DFU medium
+ * @dfu_entity_name:	Name of DFU entity to write
+ * @addr:		Address of data buffer to write
+ * @len:		Number of bytes
+ * @interface:		Destination DFU medium (e.g. "mmc")
+ * @devstring:		Instance number of destination DFU medium (e.g. "1")
  *
- * This function is storing data received via TFTP on DFU supported medium.
+ * This function is storing data received on DFU supported medium which
+ * is specified by @dfu_entity_name.
  *
- * @dfu_entity_name:	name of DFU entity to write
- * @addr:		address of data buffer to write
- * @len:		number of bytes
- * @interface:		destination DFU medium (e.g. "mmc")
- * @devstring:		instance number of destination DFU medium (e.g. "1")
- *
- * Return:		0 on success, otherwise error code
+ * Return:		0 - on success, error code - otherwise
  */
-#if CONFIG_IS_ENABLED(DFU_TFTP)
-int dfu_tftp_write(char *dfu_entity_name, unsigned int addr, unsigned int len,
-		   char *interface, char *devstring);
+int dfu_write_by_name(char *dfu_entity_name, void *addr,
+		      unsigned int len, char *interface, char *devstring);
+
+/**
+ * dfu_write_by_alt() - write data to DFU medium
+ * @dfu_alt_num:	DFU alt setting number
+ * @addr:		Address of data buffer to write
+ * @len:		Number of bytes
+ * @interface:		Destination DFU medium (e.g. "mmc")
+ * @devstring:		Instance number of destination DFU medium (e.g. "1")
+ *
+ * This function is storing data received on DFU supported medium which
+ * is specified by @dfu_alt_name.
+ *
+ * Return:		0 - on success, error code - otherwise
+ */
+int dfu_write_by_alt(int dfu_alt_num, void *addr, unsigned int len,
+		     char *interface, char *devstring);
 #else
-static inline int dfu_tftp_write(char *dfu_entity_name, unsigned int addr,
-				 unsigned int len, char *interface,
-				 char *devstring)
+static inline int dfu_write_by_name(char *dfu_entity_name, void *addr,
+				    unsigned int len, char *interface,
+				    char *devstring)
 {
-	puts("TFTP write support for DFU not available!\n");
+	puts("write support for DFU not available!\n");
+	return -ENOSYS;
+}
+
+static inline int dfu_write_by_alt(int dfu_alt_num, void *addr,
+				   unsigned int len, char *interface,
+				   char *devstring)
+{
+	puts("write support for DFU not available!\n");
 	return -ENOSYS;
 }
 #endif

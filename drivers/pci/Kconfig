@@ -179,6 +179,18 @@ config PCIE_LAYERSCAPE_RC
 	  configured to Root Complex mode by clearing the corresponding bit of
 	  RCW[HOST_AGT_PEX].
 
+config PCI_IOMMU_EXTRA_MAPPINGS
+	bool "Support for specifying extra IOMMU mappings for PCI"
+	depends on PCIE_LAYERSCAPE_RC
+	help
+	  Enable support for specifying extra IOMMU mappings for PCI
+	  controllers through a special env var called "pci_iommu_extra" or
+	  through a device tree property named "pci-iommu-extra" placed in
+	  the node describing the PCI controller.
+	  The intent is to cover SR-IOV scenarios which need mappings for VFs
+	  and PCI hot-plug scenarios. More documentation can be found under:
+	    arch/arm/cpu/armv8/fsl-layerscape/doc/README.pci_iommu_extra
+
 config PCIE_LAYERSCAPE_EP
 	bool "Layerscape PCIe Endpoint mode support"
 	depends on DM_PCI
@@ -208,6 +220,7 @@ config FSL_PCIE_COMPAT
 	default "fsl,ls2080a-pcie" if ARCH_LS2080A
 	default "fsl,ls1088a-pcie" if ARCH_LS1088A
 	default "fsl,lx2160a-pcie" if ARCH_LX2160A
+	default "fsl,ls2088a-pcie" if ARCH_LX2162A
 	default "fsl,ls1021a-pcie" if ARCH_LS1021A
 	help
 	  This compatible is used to find pci controller node in Kernel DT
@@ -267,6 +280,15 @@ config PCIE_ROCKCHIP
 	default y if ROCKCHIP_RK3399
 	help
 	  Say Y here if you want to enable PCIe controller support on
+	  Rockchip SoCs.
+
+config PCIE_DW_ROCKCHIP
+	bool "Rockchip DesignWare based PCIe controller"
+	depends on ARCH_ROCKCHIP
+	select DM_PCI
+	select PHY_ROCKCHIP_SNPS_PCIE3
+	help
+	  Say Y here if you want to enable DW PCIe controller support on
 	  Rockchip SoCs.
 
 config PCI_BRCMSTB

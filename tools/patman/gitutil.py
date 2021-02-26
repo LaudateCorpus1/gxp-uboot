@@ -66,9 +66,13 @@ def CountCommitsToBranch(branch):
         rev_range = '%s..%s' % (us, branch)
     else:
         rev_range = '@{upstream}..'
-    pipe = [LogCmd(rev_range, oneline=True), ['wc', '-l']]
-    stdout = command.RunPipe(pipe, capture=True, oneline=True).stdout
-    patch_count = int(stdout)
+    pipe = [LogCmd(rev_range, oneline=True)]
+    result = command.RunPipe(pipe, capture=True, capture_stderr=True,
+                             oneline=True, raise_on_error=False)
+    if result.return_code:
+        raise ValueError('Failed to determine upstream: %s' %
+                         result.stderr.strip())
+    patch_count = len(result.stdout.splitlines())
     return patch_count
 
 def NameRevision(commit_hash):
@@ -301,7 +305,7 @@ def PruneWorktrees(git_dir):
     if result.return_code != 0:
         raise OSError('git worktree prune: %s' % result.stderr)
 
-def CreatePatches(branch, start, count, ignore_binary, series):
+def CreatePatches(branch, start, count, ignore_binary, series, signoff = True):
     """Create a series of patches from the top of the current branch.
 
     The patch files are written to the current directory using
@@ -319,7 +323,9 @@ def CreatePatches(branch, start, count, ignore_binary, series):
     """
     if series.get('version'):
         version = '%s ' % series['version']
-    cmd = ['git', 'format-patch', '-M', '--signoff']
+    cmd = ['git', 'format-patch', '-M' ]
+    if signoff:
+        cmd.append('--signoff')
     if ignore_binary:
         cmd.append('--no-binary')
     if series.get('cover'):
@@ -379,7 +385,6 @@ def BuildEmailList(in_list, tag=None, alias=None, raise_on_error=True):
         raw += LookupEmail(item, alias, raise_on_error=raise_on_error)
     result = []
     for item in raw:
-        item = tools.FromUnicode(item)
         if not item in result:
             result.append(item)
     if tag:
@@ -451,21 +456,21 @@ def EmailPatches(series, cover_fname, args, dry_run, raise_on_error, cc_fname,
     >>> EmailPatches(series, 'cover', ['p1', 'p2'], True, True, 'cc-fname', \
             False, alias)
     'git send-email --annotate --to "f.bloggs@napier.co.nz" --cc \
-"m.poppins@cloud.net" --cc-cmd "./patman --cc-cmd cc-fname" cover p1 p2'
+"m.poppins@cloud.net" --cc-cmd "./patman send --cc-cmd cc-fname" cover p1 p2'
     >>> EmailPatches(series, None, ['p1'], True, True, 'cc-fname', False, \
             alias)
     'git send-email --annotate --to "f.bloggs@napier.co.nz" --cc \
-"m.poppins@cloud.net" --cc-cmd "./patman --cc-cmd cc-fname" p1'
+"m.poppins@cloud.net" --cc-cmd "./patman send --cc-cmd cc-fname" p1'
     >>> series['cc'] = ['all']
     >>> EmailPatches(series, 'cover', ['p1', 'p2'], True, True, 'cc-fname', \
             True, alias)
     'git send-email --annotate --to "this-is-me@me.com" --cc-cmd "./patman \
---cc-cmd cc-fname" cover p1 p2'
+send --cc-cmd cc-fname" cover p1 p2'
     >>> EmailPatches(series, 'cover', ['p1', 'p2'], True, True, 'cc-fname', \
             False, alias)
     'git send-email --annotate --to "f.bloggs@napier.co.nz" --cc \
 "f.bloggs@napier.co.nz" --cc "j.bloggs@napier.co.nz" --cc \
-"m.poppins@cloud.net" --cc-cmd "./patman --cc-cmd cc-fname" cover p1 p2'
+"m.poppins@cloud.net" --cc-cmd "./patman send --cc-cmd cc-fname" cover p1 p2'
 
     # Restore argv[0] since we clobbered it.
     >>> sys.argv[0] = _old_argv0
@@ -490,13 +495,13 @@ def EmailPatches(series, cover_fname, args, dry_run, raise_on_error, cc_fname,
     if smtp_server:
         cmd.append('--smtp-server=%s' % smtp_server)
     if in_reply_to:
-        cmd.append('--in-reply-to="%s"' % tools.FromUnicode(in_reply_to))
+        cmd.append('--in-reply-to="%s"' % in_reply_to)
     if thread:
         cmd.append('--thread')
 
     cmd += to
     cmd += cc
-    cmd += ['--cc-cmd', '"%s --cc-cmd %s"' % (sys.argv[0], cc_fname)]
+    cmd += ['--cc-cmd', '"%s send --cc-cmd %s"' % (sys.argv[0], cc_fname)]
     if cover_fname:
         cmd.append(cover_fname)
     cmd += args

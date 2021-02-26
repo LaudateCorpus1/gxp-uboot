@@ -56,6 +56,8 @@ static int v3s_clk_bind(struct udevice *dev)
 static const struct udevice_id v3s_clk_ids[] = {
 	{ .compatible = "allwinner,sun8i-v3s-ccu",
 	  .data = (ulong)&v3s_ccu_desc },
+	{ .compatible = "allwinner,sun8i-v3-ccu",
+	  .data = (ulong)&v3s_ccu_desc },
 	{ }
 };
 
@@ -63,7 +65,7 @@ U_BOOT_DRIVER(clk_sun8i_v3s) = {
 	.name		= "sun8i_v3s_ccu",
 	.id		= UCLASS_CLK,
 	.of_match	= v3s_clk_ids,
-	.priv_auto_alloc_size	= sizeof(struct ccu_priv),
+	.priv_auto	= sizeof(struct ccu_priv),
 	.ops		= &sunxi_clk_ops,
 	.probe		= sunxi_clk_probe,
 	.bind		= v3s_clk_bind,

@@ -7,6 +7,7 @@ Board-specific doc
    :maxdepth: 2
 
    actions/index
+   advantech/index
    AndesTech/index
    amlogic/index
    atmel/index
@@ -15,7 +16,8 @@ Board-specific doc
    freescale/index
    google/index
    intel/index
-   renesas/index
+   kontron/index
+   microchip/index
    rockchip/index
    sifive/index
    sipeed/index

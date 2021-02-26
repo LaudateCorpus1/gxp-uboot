@@ -59,13 +59,10 @@ Below you find the output of an example session starting GRUB::
     120832 bytes read in 7 ms (16.5 MiB/s)
     => bootefi ${kernel_addr_r} ${fdt_addr_r}
 
-The bootefi command uses the device, the file name, and the file size
-(environment variable 'filesize') of the most recently loaded file when setting
-up the binary for execution. So the UEFI binary should be loaded last.
-
-The environment variable 'bootargs' is passed as load options in the UEFI system
-table. The Linux kernel EFI stub uses the load options as command line
-arguments.
+When booting from a memory location it is unknown from which file it was loaded.
+Therefore the bootefi command uses the device path of the block device partition
+or the network adapter and the file name of the most recently loaded PE-COFF
+file when setting up the loaded image protocol.
 
 Launching a UEFI binary from a FIT image
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -156,11 +153,11 @@ The whitelist database
 
 .. code-block:: bash
 
-    $ openssl req -x509 -sha256 -newkey rsa:2048 -subj /CN=TEST_db/ \
+    openssl req -x509 -sha256 -newkey rsa:2048 -subj /CN=TEST_db/ \
             -keyout db.key -out db.crt -nodes -days 365
-    $ cert-to-efi-sig-list -g 11111111-2222-3333-4444-123456789abc \
+    cert-to-efi-sig-list -g 11111111-2222-3333-4444-123456789abc \
             db.crt db.esl
-    $ sign-efi-sig-list -c KEK.crt -k KEK.key db db.esl db.auth
+    sign-efi-sig-list -c KEK.crt -k KEK.key db db.esl db.auth
 
 Copy the \*.auth files to media, say mmc, that is accessible from U-Boot.
 

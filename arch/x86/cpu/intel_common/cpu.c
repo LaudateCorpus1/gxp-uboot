@@ -15,6 +15,7 @@
 #include <acpi/acpigen.h>
 #include <asm/cpu.h>
 #include <asm/cpu_common.h>
+#include <asm/global_data.h>
 #include <asm/intel_regs.h>
 #include <asm/lapic.h>
 #include <asm/lpc_common.h>
@@ -305,4 +306,23 @@ int cpu_get_cores_per_package(void)
 	cores = result.ebx & 0xff;
 
 	return cores;
+}
+
+void cpu_mca_configure(void)
+{
+	msr_t msr;
+	int i;
+	int num_banks;
+
+	msr = msr_read(MSR_IA32_MCG_CAP);
+	num_banks = msr.lo & 0xff;
+	msr.lo = 0;
+	msr.hi = 0;
+	for (i = 0; i < num_banks; i++) {
+		/* Clear the machine check status */
+		msr_write(MSR_IA32_MC0_STATUS + (i * 4), msr);
+		/* Initialise machine checks */
+		msr_write(MSR_IA32_MC0_CTL + i * 4,
+			  (msr_t) {.lo = 0xffffffff, .hi = 0xffffffff});
+	}
 }

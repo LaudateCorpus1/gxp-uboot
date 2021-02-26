@@ -119,6 +119,13 @@
 
 #endif
 
+/* GPIO */
+#ifdef CONFIG_DM_GPIO
+#ifndef CONFIG_MPC8XXX_GPIO
+#define CONFIG_MPC8XXX_GPIO
+#endif
+#endif
+
 /* IFC */
 #ifndef SPL_NO_IFC
 #if defined(CONFIG_TFABOOT) || \
@@ -142,7 +149,7 @@
 #endif
 
 /* I2C */
-#ifndef CONFIG_DM_I2C
+#if !CONFIG_IS_ENABLED(DM_I2C)
 #define CONFIG_SYS_I2C
 #define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
 #define CONFIG_SYS_I2C_MXC_I2C2		/* enable I2C bus 2 */
@@ -247,12 +254,12 @@
 	"kernelheader_start=0x800000\0"		\
 	"fdt_addr_r=0x90000000\0"		\
 	"load_addr=0xa0000000\0"		\
-	"kernelheader_addr=0x60800000\0"	\
+	"kernelheader_addr=0x60600000\0"	\
 	"kernel_size=0x2800000\0"		\
 	"kernelheader_size=0x40000\0"		\
 	"kernel_addr_sd=0x8000\0"		\
 	"kernel_size_sd=0x14000\0"		\
-	"kernelhdr_addr_sd=0x4000\0"		\
+	"kernelhdr_addr_sd=0x3000\0"		\
 	"kernelhdr_size_sd=0x10\0"		\
 	"console=ttyS0,115200\0"		\
 	"boot_os=y\0"				\

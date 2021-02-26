@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-VERSION = 2020
-PATCHLEVEL = 10
+VERSION = 2021
+PATCHLEVEL = 04
 SUBLEVEL =
-EXTRAVERSION =
+EXTRAVERSION = -rc2
 NAME =
 
 # *DOCUMENTATION*
@@ -807,7 +807,7 @@ libs-$(CONFIG_API) += api/
 ifdef CONFIG_POST
 libs-y += post/
 endif
-libs-$(CONFIG_UNIT_TEST) += test/ test/dm/
+libs-$(CONFIG_UNIT_TEST) += test/
 libs-$(CONFIG_UT_ENV) += test/env/
 libs-$(CONFIG_UT_OPTEE) += test/optee/
 libs-$(CONFIG_UT_OVERLAY) += test/overlay/
@@ -860,13 +860,13 @@ else
 BOARD_SIZE_CHECK =
 endif
 
-ifneq ($(CONFIG_SPL_SIZE_LIMIT),0)
+ifneq ($(CONFIG_SPL_SIZE_LIMIT),0x0)
 SPL_SIZE_CHECK = @$(call size_check,$@,$$(tools/spl_size_limit))
 else
 SPL_SIZE_CHECK =
 endif
 
-ifneq ($(CONFIG_TPL_SIZE_LIMIT),0)
+ifneq ($(CONFIG_TPL_SIZE_LIMIT),0x0)
 TPL_SIZE_CHECK = @$(call size_check,$@,$(CONFIG_TPL_SIZE_LIMIT))
 else
 TPL_SIZE_CHECK =
@@ -1005,7 +1005,7 @@ cmd_cat = cat $(filter-out $(PHONY), $^) > $@
 append = cat $(filter-out $< $(PHONY), $^) >> $@
 
 quiet_cmd_pad_cat = CAT     $@
-cmd_pad_cat = $(cmd_objcopy) && $(append) || rm -f $@
+cmd_pad_cat = $(cmd_objcopy) && $(append) || { rm -f $@; false; }
 
 quiet_cmd_lzma = LZMA    $@
 cmd_lzma = lzma -c -z -k -9 $< > $@
@@ -1309,9 +1309,17 @@ init_sp_bss_offset_check: u-boot.dtb FORCE
 	fi
 endif
 
+shell_cmd = { $(call echo-cmd,$(1)) $(cmd_$(1)); }
+
+quiet_cmd_objcopy_uboot = OBJCOPY $@
+ifdef cmd_static_rela
+cmd_objcopy_uboot = $(cmd_objcopy) && $(call shell_cmd,static_rela,$<,$@,$(CONFIG_SYS_TEXT_BASE)) || { rm -f $@; false; }
+else
+cmd_objcopy_uboot = $(cmd_objcopy)
+endif
+
 u-boot-nodtb.bin: u-boot FORCE
-	$(call if_changed,objcopy)
-	$(call cmd,static_rela,$<,$@,$(CONFIG_SYS_TEXT_BASE))
+	$(call if_changed,objcopy_uboot)
 	$(BOARD_SIZE_CHECK)
 
 u-boot.ldr:	u-boot
@@ -1332,6 +1340,7 @@ cmd_binman = $(srctree)/tools/binman/binman $(if $(BINMAN_DEBUG),-D) \
 		-I arch/$(ARCH)/dts -a of-list=$(CONFIG_OF_LIST) \
 		-a atf-bl31-path=${BL31} \
 		-a default-dt=$(default_dt) \
+		-a scp-path=$(SCP) \
 		$(BINMAN_$(@F))
 
 OBJCOPYFLAGS_u-boot.ldr.hex := -I binary -O ihex
@@ -1377,6 +1386,7 @@ MKIMAGEFLAGS_u-boot.img = -f auto -A $(ARCH) -T firmware -C none -O u-boot \
 	-a $(CONFIG_SYS_TEXT_BASE) -e $(CONFIG_SYS_UBOOT_START) \
 	-p $(CONFIG_FIT_EXTERNAL_OFFSET) \
 	-n "U-Boot $(UBOOTRELEASE) for $(BOARD) board" -E \
+	$(patsubst %,-b arch/$(ARCH)/dts/%.dtb,$(subst ",,$(DEVICE_TREE))) \
 	$(patsubst %,-b arch/$(ARCH)/dts/%.dtb,$(subst ",,$(CONFIG_OF_LIST))) \
 	$(patsubst %,-b arch/$(ARCH)/dts/%.dtbo,$(subst ",,$(CONFIG_OF_OVERLAY_LIST)))
 else
@@ -1441,11 +1451,13 @@ else
 MKIMAGEFLAGS_u-boot.itb = -E
 endif
 
+ifdef U_BOOT_ITS
 u-boot.itb: u-boot-nodtb.bin \
 		$(if $(CONFIG_OF_SEPARATE)$(CONFIG_OF_EMBED)$(CONFIG_OF_HOSTFILE),dts/dt.dtb) \
 		$(U_BOOT_ITS) FORCE
 	$(call if_changed,mkfitimage)
 	$(BOARD_SIZE_CHECK)
+endif
 
 u-boot-spl.kwb: u-boot.img spl/u-boot-spl.bin FORCE
 	$(call if_changed,mkimage)
@@ -1576,13 +1588,16 @@ u-boot.spr: spl/u-boot-spl.img u-boot.img FORCE
 
 ifneq ($(CONFIG_ARCH_SOCFPGA),)
 quiet_cmd_gensplx4 = GENSPLX4 $@
-cmd_gensplx4 = cat	spl/u-boot-spl.sfp spl/u-boot-spl.sfp	\
-			spl/u-boot-spl.sfp spl/u-boot-spl.sfp > $@ || rm -f $@
+cmd_gensplx4 = $(OBJCOPY) -I binary -O binary --gap-fill=0x0		\
+			--pad-to=$(CONFIG_SPL_PAD_TO)			\
+			spl/u-boot-spl.sfp spl/u-boot-spl.sfp &&        \
+		cat	spl/u-boot-spl.sfp spl/u-boot-spl.sfp		\
+			spl/u-boot-spl.sfp spl/u-boot-spl.sfp > $@ || { rm -f $@; false; }
 spl/u-boot-splx4.sfp: spl/u-boot-spl.sfp FORCE
 	$(call if_changed,gensplx4)
 
 quiet_cmd_socboot = SOCBOOT $@
-cmd_socboot = cat	spl/u-boot-splx4.sfp u-boot.img > $@ || rm -f $@
+cmd_socboot = cat	spl/u-boot-splx4.sfp u-boot.img > $@ || { rm -f $@; false; }
 u-boot-with-spl.sfp: spl/u-boot-splx4.sfp u-boot.img FORCE
 	$(call if_changed,socboot)
 
@@ -1592,12 +1607,12 @@ cmd_gensplpadx4 =  dd if=/dev/zero of=spl/u-boot-spl.pad bs=64 count=1024 ; \
 			spl/u-boot-spl.sfp spl/u-boot-spl.pad \
 			spl/u-boot-spl.sfp spl/u-boot-spl.pad \
 			spl/u-boot-spl.sfp spl/u-boot-spl.pad > $@ || \
-			rm -f $@ spl/u-boot-spl.pad
+			{ rm -f $@ spl/u-boot-spl.pad; false; }
 u-boot-spl-padx4.sfp: spl/u-boot-spl.sfp FORCE
 	$(call if_changed,gensplpadx4)
 
 quiet_cmd_socnandboot = SOCNANDBOOT $@
-cmd_socnandboot = cat	u-boot-spl-padx4.sfp u-boot.img > $@ || rm -f $@
+cmd_socnandboot = cat	u-boot-spl-padx4.sfp u-boot.img > $@ || { rm -f $@; false; }
 u-boot-with-nand-spl.sfp: u-boot-spl-padx4.sfp u-boot.img FORCE
 	$(call if_changed,socnandboot)
 
@@ -1839,9 +1854,13 @@ prepare: prepare0
 # Generate some files
 # ---------------------------------------------------------------------------
 
+# Use sed to remove leading zeros from PATCHLEVEL to avoid using octal numbers
 define filechk_version.h
 	(echo \#define PLAIN_VERSION \"$(UBOOTRELEASE)\"; \
 	echo \#define U_BOOT_VERSION \"U-Boot \" PLAIN_VERSION; \
+	echo \#define U_BOOT_VERSION_NUM $(VERSION); \
+	echo \#define U_BOOT_VERSION_NUM_PATCH $$(echo $(PATCHLEVEL) | \
+		sed -e "s/^0*//"); \
 	echo \#define CC_VERSION_STRING \"$$(LC_ALL=C $(CC) --version | head -n 1)\"; \
 	echo \#define LD_VERSION_STRING \"$$(LC_ALL=C $(LD) --version | head -n 1)\"; )
 endef
@@ -1863,6 +1882,7 @@ define filechk_timestamp.h
 			LC_ALL=C $${DATE} -u -d "$${SOURCE_DATE}" +'#define U_BOOT_TZ "%z"'; \
 			LC_ALL=C $${DATE} -u -d "$${SOURCE_DATE}" +'#define U_BOOT_DMI_DATE "%m/%d/%Y"'; \
 			LC_ALL=C $${DATE} -u -d "$${SOURCE_DATE}" +'#define U_BOOT_BUILD_DATE 0x%Y%m%d'; \
+			LC_ALL=C $${DATE} -u -d "$${SOURCE_DATE}" +'#define U_BOOT_EPOCH %s'; \
 		else \
 			return 42; \
 		fi; \
@@ -1872,6 +1892,7 @@ define filechk_timestamp.h
 		LC_ALL=C date +'#define U_BOOT_TZ "%z"'; \
 		LC_ALL=C date +'#define U_BOOT_DMI_DATE "%m/%d/%Y"'; \
 		LC_ALL=C date +'#define U_BOOT_BUILD_DATE 0x%Y%m%d'; \
+		LC_ALL=C date +'#define U_BOOT_EPOCH %s'; \
 	fi)
 endef
 

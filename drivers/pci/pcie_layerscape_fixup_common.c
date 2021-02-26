@@ -11,6 +11,7 @@
 #include <init.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/soc.h>
+#include <linux/libfdt.h>
 #include "pcie_layerscape_fixup_common.h"
 
 void ft_pci_setup(void *blob, struct bd_info *bd)
@@ -99,6 +100,8 @@ int lx2_board_fix_fdt(void *fdt)
 		if (!prop) {
 			printf("%s: Failed to fixup PCIe EP node @0x%x\n",
 			       __func__, off);
+			off = fdt_node_offset_by_compatible(fdt, off,
+							    "fsl,lx2160a-pcie-ep");
 			continue;
 		}
 
@@ -121,13 +124,16 @@ int pcie_board_fix_fdt(void *fdt)
 
 	svr = SVR_SOC_VER(get_svr());
 
-	if (svr == SVR_LX2160A && IS_SVR_REV(get_svr(), 2, 0))
+	if ((svr == SVR_LX2160A || svr == SVR_LX2162A ||
+	     svr == SVR_LX2120A || svr == SVR_LX2080A ||
+	     svr == SVR_LX2122A || svr == SVR_LX2082A) &&
+	     IS_SVR_REV(get_svr(), 2, 0))
 		return lx2_board_fix_fdt(fdt);
 
 	return 0;
 }
 
-#ifdef CONFIG_ARCH_LX2160A
+#if defined(CONFIG_ARCH_LX2160A) || defined(CONFIG_ARCH_LX2162A)
 /* returns the next available streamid for pcie, -errno if failed */
 int pcie_next_streamid(int currentid, int idx)
 {

@@ -29,12 +29,18 @@
 
 #define CONFIG_STANDALONE_LOAD_ADDR	0x80200000
 
+#define RISCV_MMODE_TIMERBASE		0x2000000
+#define RISCV_MMODE_TIMER_FREQ		1000000
+
+#define RISCV_SMODE_TIMER_FREQ		1000000
+
 /* Environment options */
 
 #ifndef CONFIG_SPL_BUILD
 #define BOOT_TARGET_DEVICES(func) \
 	func(QEMU, qemu, na) \
 	func(VIRTIO, virtio, 0) \
+	func(SCSI, scsi, 0) \
 	func(DHCP, dhcp, na)
 
 #include <config_distro_bootcmd.h>

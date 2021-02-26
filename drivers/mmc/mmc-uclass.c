@@ -228,7 +228,7 @@ int mmc_of_parse(struct udevice *dev, struct mmc_config *cfg)
 	if (dev_read_bool(dev, "cap-sd-highspeed"))
 		cfg->host_caps |= MMC_CAP(SD_HS);
 	if (dev_read_bool(dev, "cap-mmc-highspeed"))
-		cfg->host_caps |= MMC_CAP(MMC_HS);
+		cfg->host_caps |= MMC_CAP(MMC_HS) | MMC_CAP(MMC_HS_52);
 	if (dev_read_bool(dev, "sd-uhs-sdr12"))
 		cfg->host_caps |= MMC_CAP(UHS_SDR12);
 	if (dev_read_bool(dev, "sd-uhs-sdr25"))
@@ -321,7 +321,7 @@ struct blk_desc *mmc_get_blk_desc(struct mmc *mmc)
 	device_find_first_child(mmc->dev, &dev);
 	if (!dev)
 		return NULL;
-	desc = dev_get_uclass_platdata(dev);
+	desc = dev_get_uclass_plat(dev);
 
 	return desc;
 }
@@ -399,7 +399,7 @@ int mmc_bind(struct udevice *dev, struct mmc *mmc, const struct mmc_config *cfg)
 		debug("Cannot create block device\n");
 		return ret;
 	}
-	bdesc = dev_get_uclass_platdata(bdev);
+	bdesc = dev_get_uclass_plat(bdev);
 	mmc->cfg = cfg;
 	mmc->priv = dev;
 
@@ -435,7 +435,7 @@ static int mmc_select_hwpart(struct udevice *bdev, int hwpart)
 {
 	struct udevice *mmc_dev = dev_get_parent(bdev);
 	struct mmc *mmc = mmc_get_mmc_dev(mmc_dev);
-	struct blk_desc *desc = dev_get_uclass_platdata(bdev);
+	struct blk_desc *desc = dev_get_uclass_plat(bdev);
 	int ret;
 
 	if (desc->hwpart == hwpart)
@@ -508,5 +508,5 @@ UCLASS_DRIVER(mmc) = {
 	.id		= UCLASS_MMC,
 	.name		= "mmc",
 	.flags		= DM_UC_FLAG_SEQ_ALIAS,
-	.per_device_auto_alloc_size = sizeof(struct mmc_uclass_priv),
+	.per_device_auto	= sizeof(struct mmc_uclass_priv),
 };

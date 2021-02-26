@@ -94,9 +94,11 @@ obj-$(CONFIG_CMD_MEMORY) += mem.o
 obj-$(CONFIG_CMD_IO) += io.o
 obj-$(CONFIG_CMD_MFSL) += mfsl.o
 obj-$(CONFIG_CMD_MII) += mii.o
-obj-$(CONFIG_CMD_MDIO) += mdio.o
 obj-$(CONFIG_CMD_MISC) += misc.o
+obj-$(CONFIG_CMD_MDIO) += mdio.o
+obj-$(CONFIG_CMD_SLEEP) += sleep.o
 obj-$(CONFIG_CMD_MMC) += mmc.o
+obj-$(CONFIG_CMD_OPTEE_RPMB) += optee_rpmb.o
 obj-$(CONFIG_MP) += mp.o
 obj-$(CONFIG_CMD_MTD) += mtd.o
 obj-$(CONFIG_CMD_MTDPARTS) += mtdparts.o
@@ -104,6 +106,7 @@ obj-$(CONFIG_CMD_CLONE) += clone.o
 ifneq ($(CONFIG_CMD_NAND)$(CONFIG_CMD_SF),)
 obj-y += legacy-mtd-utils.o
 endif
+obj-$(CONFIG_CMD_MUX) += mux.o
 obj-$(CONFIG_CMD_NAND) += nand.o
 obj-$(CONFIG_CMD_NET) += net.o
 obj-$(CONFIG_CMD_NVEDIT_EFI) += nvedit_efi.o
@@ -117,6 +120,7 @@ endif
 obj-$(CONFIG_CMD_PINMUX) += pinmux.o
 obj-$(CONFIG_CMD_PMC) += pmc.o
 obj-$(CONFIG_CMD_PSTORE) += pstore.o
+obj-$(CONFIG_CMD_PWM) += pwm.o
 obj-$(CONFIG_CMD_PXE) += pxe.o pxe_utils.o
 obj-$(CONFIG_CMD_WOL) += wol.o
 obj-$(CONFIG_CMD_QFW) += qfw.o
@@ -141,6 +145,7 @@ obj-$(CONFIG_CMD_SMC) += smccc.o
 obj-$(CONFIG_CMD_SYSBOOT) += sysboot.o pxe_utils.o
 obj-$(CONFIG_CMD_TERMINAL) += terminal.o
 obj-$(CONFIG_CMD_TIME) += time.o
+obj-$(CONFIG_CMD_TIMER) += timer.o
 obj-$(CONFIG_CMD_TRACE) += trace.o
 obj-$(CONFIG_HUSH_PARSER) += test.o
 obj-$(CONFIG_CMD_TPM) += tpm-common.o
@@ -174,6 +179,7 @@ obj-$(CONFIG_CMD_ZFS) += zfs.o
 
 obj-$(CONFIG_CMD_DFU) += dfu.o
 obj-$(CONFIG_CMD_GPT) += gpt.o
+obj-$(CONFIG_CMD_MBR) += mbr.o
 obj-$(CONFIG_CMD_ETHSW) += ethsw.o
 obj-$(CONFIG_CMD_AXI) += axi.o
 obj-$(CONFIG_CMD_PVBLOCK) += pvblock.o
@@ -189,6 +195,7 @@ obj-$(CONFIG_CMD_AVB) += avb.o
 
 obj-$(CONFIG_ARM) += arm/
 obj-$(CONFIG_RISCV) += riscv/
+obj-$(CONFIG_SANDBOX) += sandbox/
 obj-$(CONFIG_X86) += x86/
 
 obj-$(CONFIG_ARCH_MVEBU) += mvebu/

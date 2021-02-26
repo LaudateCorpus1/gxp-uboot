@@ -13,6 +13,7 @@
 #include <video.h>
 #include <acpi/acpi_table.h>
 #include <asm/fsp/fsp_support.h>
+#include <asm/global_data.h>
 #include <asm/intel_opregion.h>
 #include <asm/mtrr.h>
 #include <dm/acpi.h>
@@ -80,7 +81,7 @@ static int save_vesa_mode(struct vesa_mode_info *vesa)
 
 static int fsp_video_probe(struct udevice *dev)
 {
-	struct video_uc_platdata *plat = dev_get_uclass_platdata(dev);
+	struct video_uc_plat *plat = dev_get_uclass_plat(dev);
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
 	struct vesa_mode_info *vesa = &mode_info.vesa;
 	int ret;
@@ -124,7 +125,7 @@ err:
 
 static int fsp_video_bind(struct udevice *dev)
 {
-	struct video_uc_platdata *plat = dev_get_uclass_platdata(dev);
+	struct video_uc_plat *plat = dev_get_uclass_plat(dev);
 
 	/* Set the maximum supported resolution */
 	plat->size = 2560 * 1600 * 4;
@@ -139,7 +140,7 @@ static int fsp_video_acpi_write_tables(const struct udevice *dev,
 	struct igd_opregion *opregion;
 	int ret;
 
-	printf("ACPI:    * IGD OpRegion\n");
+	log_debug("ACPI:    * IGD OpRegion\n");
 	opregion = (struct igd_opregion *)ctx->current;
 
 	ret = intel_gma_init_igd_opregion((struct udevice *)dev, opregion);

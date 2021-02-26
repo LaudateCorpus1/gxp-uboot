@@ -41,11 +41,7 @@
 		u-boot,dm-pre-reloc;
 		compatible = "sandbox,spl-test";
 		stringarray = "one";
-	};
-
-	spl-test4 {
-		u-boot,dm-pre-reloc;
-		compatible = "sandbox,spl-test.2";
+		longbytearray = [09 0a 0b 0c 0d 0e 0f 10];
 	};
 
 	i2c@0 {

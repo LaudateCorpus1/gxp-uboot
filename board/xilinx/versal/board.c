@@ -13,6 +13,7 @@
 #include <malloc.h>
 #include <time.h>
 #include <asm/cache.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/sys_proto.h>
@@ -35,6 +36,9 @@ int board_init(void)
 	fpga_init();
 	fpga_add(fpga_xilinx, &versalpl);
 #endif
+
+	if (CONFIG_IS_ENABLED(DM_I2C) && CONFIG_IS_ENABLED(I2C_EEPROM))
+		xilinx_read_eeprom();
 
 	return 0;
 }
@@ -150,9 +154,9 @@ int board_late_init(void)
 			puts("Boot from EMMC but without SD1 enabled!\n");
 			return -1;
 		}
-		debug("mmc1 device found at %p, seq %d\n", dev, dev->seq);
+		debug("mmc1 device found at %p, seq %d\n", dev, dev_seq(dev));
 		mode = "mmc";
-		bootseq = dev->seq;
+		bootseq = dev_seq(dev);
 		break;
 	case SD_MODE:
 		puts("SD_MODE\n");
@@ -161,10 +165,10 @@ int board_late_init(void)
 			puts("Boot from SD0 but without SD0 enabled!\n");
 			return -1;
 		}
-		debug("mmc0 device found at %p, seq %d\n", dev, dev->seq);
+		debug("mmc0 device found at %p, seq %d\n", dev, dev_seq(dev));
 
 		mode = "mmc";
-		bootseq = dev->seq;
+		bootseq = dev_seq(dev);
 		break;
 	case SD1_LSHFT_MODE:
 		puts("LVL_SHFT_");
@@ -176,10 +180,10 @@ int board_late_init(void)
 			puts("Boot from SD1 but without SD1 enabled!\n");
 			return -1;
 		}
-		debug("mmc1 device found at %p, seq %d\n", dev, dev->seq);
+		debug("mmc1 device found at %p, seq %d\n", dev, dev_seq(dev));
 
 		mode = "mmc";
-		bootseq = dev->seq;
+		bootseq = dev_seq(dev);
 		break;
 	default:
 		mode = "";

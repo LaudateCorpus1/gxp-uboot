@@ -21,19 +21,26 @@ targets += helloworld.o
 endif
 
 obj-$(CONFIG_CMD_BOOTEFI_HELLO) += helloworld_efi.o
-obj-y += efi_bootmgr.o
+obj-$(CONFIG_CMD_BOOTEFI_BOOTMGR) += efi_bootmgr.o
 obj-y += efi_boottime.o
+obj-$(CONFIG_EFI_HAVE_CAPSULE_SUPPORT) += efi_capsule.o
+obj-$(CONFIG_EFI_CAPSULE_FIRMWARE) += efi_firmware.o
 obj-y += efi_console.o
 obj-y += efi_device_path.o
 obj-$(CONFIG_EFI_DEVICE_PATH_TO_TEXT) += efi_device_path_to_text.o
-obj-y += efi_device_path_utilities.o
+obj-$(CONFIG_EFI_DEVICE_PATH_UTIL) += efi_device_path_utilities.o
+ifeq ($(CONFIG_GENERATE_ACPI_TABLE),)
+obj-y += efi_dt_fixup.o
+endif
 obj-y += efi_file.o
-obj-$(CONFIG_EFI_LOADER_HII) += efi_hii.o efi_hii_config.o
+obj-$(CONFIG_EFI_LOADER_HII) += efi_hii.o
 obj-y += efi_image_loader.o
+obj-y += efi_load_options.o
 obj-y += efi_memory.o
 obj-y += efi_root_node.o
 obj-y += efi_runtime.o
 obj-y += efi_setup.o
+obj-y += efi_string.o
 obj-$(CONFIG_EFI_UNICODE_COLLATION_PROTOCOL2) += efi_unicode_collation.o
 obj-y += efi_var_common.o
 obj-y += efi_var_mem.o
@@ -52,6 +59,7 @@ obj-$(CONFIG_NET) += efi_net.o
 obj-$(CONFIG_GENERATE_ACPI_TABLE) += efi_acpi.o
 obj-$(CONFIG_GENERATE_SMBIOS_TABLE) += efi_smbios.o
 obj-$(CONFIG_EFI_RNG_PROTOCOL) += efi_rng.o
+obj-$(CONFIG_EFI_TCG2_PROTOCOL) += efi_tcg2.o
 obj-$(CONFIG_EFI_LOAD_FILE2_INITRD) += efi_load_initrd.o
 obj-y += efi_signature.o
 

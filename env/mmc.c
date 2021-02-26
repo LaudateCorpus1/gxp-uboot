@@ -6,6 +6,7 @@
 /* #define DEBUG */
 
 #include <common.h>
+#include <asm/global_data.h>
 
 #include <command.h>
 #include <env.h>
@@ -42,7 +43,7 @@ static inline int mmc_offset_try_partition(const char *str, int copy, s64 *val)
 		if (ret < 0)
 			return ret;
 
-		if (!strncmp((const char *)info.name, str, sizeof(str)))
+		if (!strncmp((const char *)info.name, str, sizeof(info.name)))
 			break;
 	}
 

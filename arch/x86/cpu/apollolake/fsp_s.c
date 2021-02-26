@@ -14,6 +14,7 @@
 #include <malloc.h>
 #include <p2sb.h>
 #include <acpi/acpi_s3.h>
+#include <asm/global_data.h>
 #include <asm/intel_pinctrl.h>
 #include <asm/io.h>
 #include <asm/intel_regs.h>
@@ -116,10 +117,10 @@ static int set_power_limits(struct udevice *dev)
 
 	/* Program package power limits in RAPL MSR */
 	msr_write(MSR_PKG_POWER_LIMIT, limit);
-	log_info("RAPL PL1 %d.%dW\n", tdp / power_unit,
-		 100 * (tdp % power_unit) / power_unit);
-	log_info("RAPL PL2 %d.%dW\n", pl2_val / power_unit,
-		 100 * (pl2_val % power_unit) / power_unit);
+	log_debug("RAPL PL1 %d.%dW\n", tdp / power_unit,
+		  100 * (tdp % power_unit) / power_unit);
+	log_debug("RAPL PL2 %d.%dW\n", pl2_val / power_unit,
+		  100 * (pl2_val % power_unit) / power_unit);
 
 	/*
 	 * Sett RAPL MMIO register for Power limits. RAPL driver is using MSR

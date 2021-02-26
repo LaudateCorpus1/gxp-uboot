@@ -118,17 +118,25 @@
 	  "setenv efi_fdtfile ${soc}-${board}${boardver}.dtb; "           \
 	"fi; "
 #else
+#ifndef BOOTENV_EFI_SET_FDTFILE_FALLBACK
 #define BOOTENV_EFI_SET_FDTFILE_FALLBACK
 #endif
+#endif
 
-
-#define BOOTENV_SHARED_EFI                                                \
+#ifdef CONFIG_CMD_BOOTEFI_BOOTMGR
+#define BOOTENV_EFI_BOOTMGR                                               \
 	"boot_efi_bootmgr="                                               \
 		"if fdt addr ${fdt_addr_r}; then "                        \
 			"bootefi bootmgr ${fdt_addr_r};"                  \
 		"else "                                                   \
 			"bootefi bootmgr;"                                \
-		"fi\0"                                                    \
+		"fi\0"
+#else
+#define BOOTENV_EFI_BOOTMGR
+#endif
+
+#define BOOTENV_SHARED_EFI                                                \
+	BOOTENV_EFI_BOOTMGR                                               \
 	\
 	"boot_efi_binary="                                                \
 		"load ${devtype} ${devnum}:${distro_bootpart} "           \
@@ -367,6 +375,7 @@
 #endif
 #define BOOTENV_DEV_DHCP(devtypeu, devtypel, instance) \
 	"bootcmd_dhcp=" \
+		"setenv devtype " #devtypel "; " \
 		BOOTENV_RUN_NET_USB_START \
 		BOOTENV_RUN_PCI_ENUM \
 		"if dhcp ${scriptaddr} ${boot_script_dhcp}; then " \

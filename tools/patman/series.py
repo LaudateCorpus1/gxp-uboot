@@ -16,7 +16,7 @@ from patman import tools
 
 # Series-xxx tags that we understand
 valid_series = ['to', 'cc', 'version', 'changes', 'prefix', 'notes', 'name',
-                'cover_cc', 'process_log']
+                'cover_cc', 'process_log', 'links', 'patchwork_url']
 
 class Series(dict):
     """Holds information about a patch series, including all tags.
@@ -59,6 +59,9 @@ class Series(dict):
             line: Source line containing tag (useful for debug/error messages)
             name: Tag name (part after 'Series-')
             value: Tag value (part after 'Series-xxx: ')
+
+        Returns:
+            String warning if something went wrong, else None
         """
         # If we already have it, then add to our list
         name = name.replace('-', '_')
@@ -78,9 +81,10 @@ class Series(dict):
             else:
                 self[name] = value
         else:
-            raise ValueError("In %s: line '%s': Unknown 'Series-%s': valid "
+            return ("In %s: line '%s': Unknown 'Series-%s': valid "
                         "options are %s" % (commit.hash, line, name,
                             ', '.join(valid_series)))
+        return None
 
     def AddCommit(self, commit):
         """Add a commit into our list of commits
@@ -268,7 +272,6 @@ class Series(dict):
             for x in set(cc) & set(settings.bounces):
                 print(col.Color(col.YELLOW, 'Skipping "%s"' % x))
             cc = set(cc) - set(settings.bounces)
-            cc = [tools.FromUnicode(m) for m in cc]
             if limit is not None:
                 cc = cc[:limit]
             all_ccs += cc
@@ -277,11 +280,10 @@ class Series(dict):
 
         if cover_fname:
             cover_cc = gitutil.BuildEmailList(self.get('cover_cc', ''))
-            cover_cc = [tools.FromUnicode(m) for m in cover_cc]
             cover_cc = list(set(cover_cc + all_ccs))
             if limit is not None:
                 cover_cc = cover_cc[:limit]
-            cc_list = '\0'.join([tools.ToUnicode(x) for x in sorted(cover_cc)])
+            cc_list = '\0'.join([x for x in sorted(cover_cc)])
             print(cover_fname, cc_list, file=fd)
 
         fd.close()

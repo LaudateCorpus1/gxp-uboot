@@ -23,6 +23,7 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/psu_init_gpl.h>
 #include <asm/cache.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/ptrace.h>
 #include <dm/device.h>
@@ -40,12 +41,12 @@
 #include "pm_cfg_obj.h"
 
 #define ZYNQMP_VERSION_SIZE	7
-#define EFUSE_VCU_DIS_MASK     0x100
-#define EFUSE_VCU_DIS_SHIFT    8
-#define EFUSE_GPU_DIS_MASK     0x20
-#define EFUSE_GPU_DIS_SHIFT    5
-#define IDCODE2_PL_INIT_MASK   0x200
-#define IDCODE2_PL_INIT_SHIFT  9
+#define EFUSE_VCU_DIS_MASK	0x100
+#define EFUSE_VCU_DIS_SHIFT	8
+#define EFUSE_GPU_DIS_MASK	0x20
+#define EFUSE_GPU_DIS_SHIFT	5
+#define IDCODE2_PL_INIT_MASK	0x200
+#define IDCODE2_PL_INIT_SHIFT	9
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -100,7 +101,7 @@ static const struct {
 	{
 		.id = 0x04738093,
 		.device = 9,
-		.variants = ZYNQMP_VARIANT_EG,
+		.variants = ZYNQMP_VARIANT_EG | ZYNQMP_VARIANT_CG,
 	},
 	{
 		.id = 0x04740093,
@@ -190,8 +191,13 @@ static char *zynqmp_get_silicon_idcode_name(void)
 	u32 idcode, idcode2;
 	char name[ZYNQMP_VERSION_SIZE];
 	u32 ret_payload[PAYLOAD_ARG_CNT];
+	int ret;
 
-	xilinx_pm_request(PM_GET_CHIPID, 0, 0, 0, 0, ret_payload);
+	ret = xilinx_pm_request(PM_GET_CHIPID, 0, 0, 0, 0, ret_payload);
+	if (ret) {
+		debug("%s: Getting chipid failed\n", __func__);
+		return "unknown";
+	}
 
 	/*
 	 * Firmware returns:
@@ -204,7 +210,7 @@ static char *zynqmp_get_silicon_idcode_name(void)
 
 	idcode  = ret_payload[1];
 	idcode2 = ret_payload[2] >> ZYNQMP_CSU_VERSION_EMPTY_SHIFT;
-	debug("%s, IDCODE: 0x%0X, IDCODE2: 0x%0X\r\n", __func__, idcode,
+	debug("%s, IDCODE: 0x%0x, IDCODE2: 0x%0x\r\n", __func__, idcode,
 	      idcode2);
 
 	for (i = 0; i < ARRAY_SIZE(zynqmp_devices); i++) {
@@ -216,8 +222,10 @@ static char *zynqmp_get_silicon_idcode_name(void)
 		return "unknown";
 
 	/* Add device prefix to the name */
-	strncpy(name, "zu", ZYNQMP_VERSION_SIZE);
-	strncat(&name[2], simple_itoa(zynqmp_devices[i].device), 2);
+	ret = snprintf(name, ZYNQMP_VERSION_SIZE, "zu%d",
+		       zynqmp_devices[i].device);
+	if (ret < 0)
+		return "unknown";
 
 	if (zynqmp_devices[i].variants & ZYNQMP_VARIANT_EV) {
 		/* Devices with EV variant might be EG/CG/EV family */
@@ -321,6 +329,10 @@ int board_init(void)
 	if (sizeof(CONFIG_ZYNQMP_SPL_PM_CFG_OBJ_FILE) > 1)
 		zynqmp_pmufw_load_config_object(zynqmp_pm_cfg_obj,
 						zynqmp_pm_cfg_obj_size);
+	printf("Silicon version:\t%d\n", zynqmp_get_silicon_version());
+#else
+	if (CONFIG_IS_ENABLED(DM_I2C) && CONFIG_IS_ENABLED(I2C_EEPROM))
+		xilinx_read_eeprom();
 #endif
 
 	printf("EL Level:\tEL%d\n", current_el());
@@ -485,11 +497,7 @@ static int reset_reason(void)
 
 	env_set("reset_reason", reason);
 
-	ret = zynqmp_mmio_write((ulong)&crlapb_base->reset_reason, ~0, ~0);
-	if (ret)
-		return -EINVAL;
-
-	return ret;
+	return 0;
 }
 
 static int set_fdtfile(void)
@@ -586,10 +594,10 @@ int board_late_init(void)
 			puts("Boot from EMMC but without SD0 enabled!\n");
 			return -1;
 		}
-		debug("mmc0 device found at %p, seq %d\n", dev, dev->seq);
+		debug("mmc0 device found at %p, seq %d\n", dev, dev_seq(dev));
 
 		mode = "mmc";
-		bootseq = dev->seq;
+		bootseq = dev_seq(dev);
 		break;
 	case SD_MODE:
 		puts("SD_MODE\n");
@@ -600,10 +608,10 @@ int board_late_init(void)
 			puts("Boot from SD0 but without SD0 enabled!\n");
 			return -1;
 		}
-		debug("mmc0 device found at %p, seq %d\n", dev, dev->seq);
+		debug("mmc0 device found at %p, seq %d\n", dev, dev_seq(dev));
 
 		mode = "mmc";
-		bootseq = dev->seq;
+		bootseq = dev_seq(dev);
 		env_set("modeboot", "sdboot");
 		break;
 	case SD1_LSHFT_MODE:
@@ -618,10 +626,10 @@ int board_late_init(void)
 			puts("Boot from SD1 but without SD1 enabled!\n");
 			return -1;
 		}
-		debug("mmc1 device found at %p, seq %d\n", dev, dev->seq);
+		debug("mmc1 device found at %p, seq %d\n", dev, dev_seq(dev));
 
 		mode = "mmc";
-		bootseq = dev->seq;
+		bootseq = dev_seq(dev);
 		env_set("modeboot", "sdboot");
 		break;
 	case NAND_MODE:
@@ -638,6 +646,7 @@ int board_late_init(void)
 	if (bootseq >= 0) {
 		bootseq_len = snprintf(NULL, 0, "%i", bootseq);
 		debug("Bootseq len: %x\n", bootseq_len);
+		env_set_hex("bootseq", bootseq);
 	}
 
 	/*

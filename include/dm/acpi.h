@@ -28,6 +28,7 @@
 #if !defined(__ACPI__)
 
 struct nhlt;
+struct udevice;
 
 /** enum acpi_dump_option - selects what ACPI information to dump */
 enum acpi_dump_option {
@@ -225,6 +226,15 @@ void acpi_dump_items(enum acpi_dump_option option);
  * @return 0 if OK, -ve on error
  */
 int acpi_get_path(const struct udevice *dev, char *out_path, int maxlen);
+
+/**
+ * acpi_reset_items() - Reset the list of ACPI items to empty
+ *
+ * This list keeps track of DSDT and SSDT items that are generated
+ * programmatically. The 'acpi items' command shows the list. Use this function
+ * to empty the list, before writing new items.
+ */
+void acpi_reset_items(void);
 
 #endif /* __ACPI__ */
 

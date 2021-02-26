@@ -125,10 +125,6 @@ unsigned long get_board_sys_clk(unsigned long dummy);
  */
 #define CONFIG_PRAM		((CONFIG_KM_PNVRAM + CONFIG_KM_PHRAM) >> 10)
 
-#define CONFIG_KM_CRAMFS_ADDR	0x2000000
-#define CONFIG_KM_KERNEL_ADDR	0x1000000	/* max kernel size 15.5Mbytes */
-#define CONFIG_KM_FDT_ADDR	0x1F80000	/* max dtb    size  0.5Mbytes */
-
 /*
  * Local Bus Definitions
  */
@@ -241,12 +237,6 @@ unsigned long get_board_sys_clk(unsigned long dummy);
 					{0, {{I2C_MUX_PCA9547, 0x70, 1 } } }, \
 					{0, {{I2C_MUX_PCA9547, 0x70, 2 } } }, \
 				}
-#ifndef __ASSEMBLY__
-void set_sda(int state);
-void set_scl(int state);
-int get_sda(void);
-int get_scl(void);
-#endif
 
 #define CONFIG_KM_IVM_BUS		1	/* I2C1 (Mux-Port 1)*/
 
@@ -340,9 +330,6 @@ int get_scl(void);
 /*
  * additionnal command line configuration.
  */
-
-/* we don't need flash support */
-#undef CONFIG_JFFS2_CMDLINE
 
 /*
  * For booting Linux, the board info and command line data

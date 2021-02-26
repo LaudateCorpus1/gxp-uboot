@@ -37,6 +37,7 @@ obj-$(CONFIG_FIT) += fdtdec_common.o
 obj-$(CONFIG_TEST_FDTDEC) += fdtdec_test.o
 obj-$(CONFIG_GZIP_COMPRESSED) += gzip.o
 obj-$(CONFIG_GENERATE_SMBIOS_TABLE) += smbios.o
+obj-$(CONFIG_SMBIOS_PARSER) += smbios-parser.o
 obj-$(CONFIG_IMAGE_SPARSE) += image-sparse.o
 obj-y += ldiv.o
 obj-$(CONFIG_XXHASH) += xxhash.o
@@ -91,7 +92,9 @@ obj-y += display_options.o
 CFLAGS_display_options.o := $(if $(BUILD_TAG),-DBUILD_TAG='"$(BUILD_TAG)"')
 obj-$(CONFIG_BCH) += bch.o
 obj-$(CONFIG_MMC_SPI) += crc7.o
+#ifndef CONFIG_TPL_BUILD
 obj-y += crc32.o
+#endif
 obj-$(CONFIG_CRC32C) += crc32c.o
 obj-y += ctype.o
 obj-y += div64.o
@@ -106,6 +109,7 @@ obj-y += string.o
 obj-y += tables_csum.o
 obj-y += time.o
 obj-y += hexdump.o
+obj-$(CONFIG_GETOPT) += getopt.o
 obj-$(CONFIG_TRACE) += trace.o
 obj-$(CONFIG_LIB_UUID) += uuid.o
 obj-$(CONFIG_LIB_RAND) += rand.o

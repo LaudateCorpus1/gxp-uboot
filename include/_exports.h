@@ -8,7 +8,7 @@
 #define EXPORT_FUNC(a, b, c, ...)
 #endif
 	EXPORT_FUNC(get_version, unsigned long, get_version, void)
-	EXPORT_FUNC(getc, int, getc, void)
+	EXPORT_FUNC(getchar, int, getc, void)
 	EXPORT_FUNC(tstc, int, tstc, void)
 	EXPORT_FUNC(putc, void, putc, const char)
 	EXPORT_FUNC(puts, void, puts, const char *)
@@ -40,7 +40,7 @@
 	EXPORT_FUNC(simple_strtol, long, simple_strtol,
 		    const char *, char **, unsigned int)
 	EXPORT_FUNC(strcmp, int, strcmp, const char *cs, const char *ct)
-#if defined(CONFIG_CMD_I2C) && !defined(CONFIG_DM_I2C)
+#if defined(CONFIG_CMD_I2C) && !CONFIG_IS_ENABLED(DM_I2C)
 	EXPORT_FUNC(i2c_write, int, i2c_write, uchar, uint, int , uchar * , int)
 	EXPORT_FUNC(i2c_read, int, i2c_read, uchar, uint, int , uchar * , int)
 #else

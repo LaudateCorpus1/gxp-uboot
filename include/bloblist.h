@@ -36,6 +36,8 @@ enum bloblist_tag_t {
 	BLOBLISTT_INTEL_VBT,		/* Intel Video-BIOS table */
 	BLOBLISTT_TPM2_TCG_LOG,		/* TPM v2 log space */
 	BLOBLISTT_TCPA_LOG,		/* TPM log space */
+	BLOBLISTT_ACPI_TABLES,		/* ACPI tables for x86 */
+	BLOBLISTT_SMBIOS_TABLES,	/* SMBIOS tables for x86 */
 
 	BLOBLISTT_COUNT
 };
@@ -239,6 +241,16 @@ void bloblist_show_list(void);
  * @return name of tag, or "invalid" if an invalid tag is provided
  */
 const char *bloblist_tag_name(enum bloblist_tag_t tag);
+
+/**
+ * bloblist_reloc() - Relocate the bloblist and optionally resize it
+ *
+ * @to: Pointer to new bloblist location (must not overlap old location)
+ * @to:size: New size for bloblist (must be larger than from_size)
+ * @from: Pointer to bloblist to relocate
+ * @from_size: Size of bloblist to relocate
+ */
+void bloblist_reloc(void *to, uint to_size, void *from, uint from_size);
 
 /**
  * bloblist_init() - Init the bloblist system with a single bloblist

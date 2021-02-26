@@ -106,6 +106,14 @@ config BCMSTB_SPI
 	  be used to access the SPI flash on platforms embedding this
 	  Broadcom SPI core.
 
+config CORTINA_SFLASH
+	bool "Cortina-Access Serial Flash controller driver"
+	depends on DM_SPI && SPI_MEM
+	help
+	  Enable the Cortina-Access Serial Flash controller driver. This driver
+	  can be used to access the SPI NOR/NAND flash on platforms embedding this
+	  Cortina-Access IP core.
+
 config CADENCE_QSPI
 	bool "Cadence QSPI driver"
 	help
@@ -202,6 +210,13 @@ config MSCC_BB_SPI
 	  Enable MSCC bitbang SPI driver. This driver can be used on
 	  MSCC SOCs.
 
+config MT7620_SPI
+	bool "MediaTek MT7620 SPI driver"
+	depends on SOC_MT7620
+	help
+	  Enable the MT7620 SPI driver. This driver can be used to access
+	  generic SPI devices on MediaTek MT7620 SoC.
+
 config MT7621_SPI
 	bool "MediaTek MT7621 SPI driver"
 	depends on SOC_MT7628
@@ -209,6 +224,13 @@ config MT7621_SPI
 	  Enable the MT7621 SPI driver. This driver can be used to access
 	  the SPI NOR flash on platforms embedding this Ralink / MediaTek
 	  SPI core, like MT7621/7628/7688.
+
+config MTK_SNOR
+	bool "Mediatek SPI-NOR controller driver"
+	depends on SPI_MEM
+	help
+	  Enable the Mediatek SPINOR controller driver. This driver has
+          better read/write performance with NOR.
 
 config MTK_SNFI_SPI
 	bool "Mediatek SPI memory controller driver"
@@ -270,6 +292,16 @@ config PL022_SPI
 	  This selects the ARM(R) AMBA(R) PrimeCell PL022 SSP
 	  controller. If you have an embedded system with an AMBA(R)
 	  bus and a PL022 controller, say Y or M here.
+
+config SPI_QUP
+	bool "Qualcomm SPI controller with QUP interface"
+	depends on ARCH_IPQ40XX
+	help
+	  Qualcomm Universal Peripheral (QUP) core is an AHB slave that
+	  provides a common data path (an output FIFO and an input FIFO)
+	  for serial peripheral interface (SPI) mini-core. SPI in master
+	  mode supports up to 50MHz, up to four chip selects, programmable
+	  data path from 4 bits to 32 bits and numerous protocol variants.
 
 config RENESAS_RPC_SPI
 	bool "Renesas RPC SPI driver"

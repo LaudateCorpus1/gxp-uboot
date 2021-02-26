@@ -30,6 +30,34 @@ struct binman_info {
 
 static struct binman_info *binman;
 
+/**
+ * find_image_node() - Find the top-level binman node
+ *
+ * Finds the binman node which can be used to load entries. The correct node
+ * depends on whether multiple-images is in use.
+ *
+ * @nodep: Returns the node found, on success
+ * @return 0 if OK, , -EINVAL if there is no /binman node, -ECHILD if multiple
+ * images are being used but the first image is not available
+ */
+static int find_image_node(ofnode *nodep)
+{
+	ofnode node;
+
+	node = ofnode_path("/binman");
+	if (!ofnode_valid(node))
+		return log_msg_ret("binman node", -EINVAL);
+	if (ofnode_read_bool(node, "multiple-images")) {
+		node = ofnode_first_subnode(node);
+
+		if (!ofnode_valid(node))
+			return log_msg_ret("first image", -ECHILD);
+	}
+	*nodep = node;
+
+	return 0;
+}
+
 static int binman_entry_find_internal(ofnode node, const char *name,
 				      struct binman_entry *entry)
 {
@@ -43,7 +71,7 @@ static int binman_entry_find_internal(ofnode node, const char *name,
 
 	ret = ofnode_read_u32(node, "image-pos", &entry->image_pos);
 	if (ret)
-		return log_msg_ret("import-pos", ret);
+		return log_msg_ret("image-pos", ret);
 	ret = ofnode_read_u32(node, "size", &entry->size);
 	if (ret)
 		return log_msg_ret("size", ret);
@@ -83,15 +111,42 @@ void binman_set_rom_offset(int rom_offset)
 	binman->rom_offset = rom_offset;
 }
 
+int binman_get_rom_offset(void)
+{
+	return binman->rom_offset;
+}
+
+int binman_select_subnode(const char *name)
+{
+	ofnode node;
+	int ret;
+
+	ret = find_image_node(&node);
+	if (ret)
+		return log_msg_ret("main", -ENOENT);
+	node = ofnode_find_subnode(node, name);
+	if (!ofnode_valid(node))
+		return log_msg_ret("node", -ENOENT);
+	binman->image = node;
+	log_debug("binman: Selected image subnode '%s'\n",
+		  ofnode_get_name(binman->image));
+
+	return 0;
+}
+
 int binman_init(void)
 {
+	int ret;
+
 	binman = malloc(sizeof(struct binman_info));
 	if (!binman)
 		return log_msg_ret("space for binman", -ENOMEM);
-	binman->image = ofnode_path("/binman");
-	if (!ofnode_valid(binman->image))
-		return log_msg_ret("binman node", -EINVAL);
-	binman->rom_offset = ROM_OFFSET_NONE;
+	ret = find_image_node(&binman->image);
+	if (ret)
+		return log_msg_ret("node", -ENOENT);
+	binman_set_rom_offset(ROM_OFFSET_NONE);
+	log_debug("binman: Selected image node '%s'\n",
+		  ofnode_get_name(binman->image));
 
 	return 0;
 }

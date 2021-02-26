@@ -104,6 +104,7 @@ dumpimage-mkimage-objs := aisimage.o \
 			stm32image.o \
 			$(ROCKCHIP_OBS) \
 			socfpgaimage.o \
+			sunxi_egon.o \
 			lib/crc16.o \
 			lib/sha1.o \
 			lib/sha256.o \
@@ -154,7 +155,7 @@ HOSTCFLAGS_kwbimage.o += -DCONFIG_KWB_SECURE
 endif
 
 # MXSImage needs LibSSL
-ifneq ($(CONFIG_MX23)$(CONFIG_MX28)$(CONFIG_ARMADA_38X)$(CONFIG_ARMADA_39X)$(CONFIG_FIT_SIGNATURE),)
+ifneq ($(CONFIG_MX23)$(CONFIG_MX28)$(CONFIG_ARMADA_38X)$(CONFIG_ARMADA_39X)$(CONFIG_FIT_SIGNATURE)$(CONFIG_FIT_CIPHER),)
 HOSTCFLAGS_kwbimage.o += \
 	$(shell pkg-config --cflags libssl libcrypto 2> /dev/null || echo "")
 HOSTLDLIBS_mkimage += \
@@ -206,6 +207,9 @@ hostprogs-y += proftool
 hostprogs-$(CONFIG_STATIC_RELA) += relocate-rela
 hostprogs-$(CONFIG_RISCV) += prelink-riscv
 
+hostprogs-$(CONFIG_ARCH_OCTEON) += update_octeon_header
+update_octeon_header-objs := update_octeon_header.o lib/crc32.o
+
 hostprogs-y += fdtgrep
 fdtgrep-objs += $(LIBFDT_OBJS) common/fdt_region.o fdtgrep.o
 
@@ -217,6 +221,9 @@ hostprogs-$(CONFIG_MIPS) += mips-relocs
 
 hostprogs-$(CONFIG_ASN1_COMPILER)	+= asn1_compiler
 HOSTCFLAGS_asn1_compiler.o = -idirafter $(srctree)/include
+
+mkeficapsule-objs	:= mkeficapsule.o $(LIBFDT_OBJS)
+hostprogs-$(CONFIG_EFI_HAVE_CAPSULE_SUPPORT) += mkeficapsule
 
 # We build some files with extra pedantic flags to try to minimize things
 # that won't build on some weird host compiler -- though there are lots of

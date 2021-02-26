@@ -244,7 +244,8 @@ def ExtractEntries(image_fname, output_fname, outdir, entry_paths,
             if not os.path.exists(fname):
                 os.makedirs(fname)
             fname = os.path.join(fname, 'root')
-        tout.Notice("Write entry '%s' to '%s'" % (entry.GetPath(), fname))
+        tout.Notice("Write entry '%s' size %x to '%s'" %
+                    (entry.GetPath(), len(data), fname))
         tools.WriteFile(fname, data)
     return einfos
 
@@ -462,7 +463,7 @@ def PrepareImagesAndDtbs(dtb_fname, select_images, update_fdt):
     for image in images.values():
         image.ExpandEntries()
         if update_fdt:
-            image.AddMissingProperties()
+            image.AddMissingProperties(True)
         image.ProcessFdt(dtb)
 
     for dtb_item in state.GetAllFdts():
@@ -513,8 +514,6 @@ def ProcessImage(image, update_fdt, write_map, get_contents=True,
     for pack_pass in range(passes):
         try:
             image.PackEntries()
-            image.CheckSize()
-            image.CheckEntries()
         except Exception as e:
             if write_map:
                 fname = image.WriteMap()

@@ -128,13 +128,14 @@ struct apu_regs {
 
 #define ZYNQMP_CSU_VERSION_EMPTY_SHIFT		20
 
-#define ZYNQMP_SILICON_VER_MASK		0xF000
-#define ZYNQMP_SILICON_VER_SHIFT	12
+#define ZYNQMP_SILICON_VER_MASK		0xF
+#define ZYNQMP_SILICON_VER_SHIFT	0
 
 struct csu_regs {
 	u32 reserved0[4];
 	u32 multi_boot;
-	u32 reserved1[12];
+	u32 reserved1[11];
+	u32 idcode;
 	u32 version;
 };
 
@@ -148,8 +149,5 @@ struct pmu_regs {
 };
 
 #define pmu_base ((struct pmu_regs *)ZYNQMP_PMU_BASEADDR)
-
-#define ZYNQMP_CSU_IDCODE_ADDR	0xFFCA0040
-#define ZYNQMP_CSU_VER_ADDR	0xFFCA0044
 
 #endif /* _ASM_ARCH_HARDWARE_H */

@@ -67,7 +67,11 @@ jobs:
       image: $(ci_runner_image)
       options: $(container_option)
     steps:
-      - script: make htmldocs
+      - script: |
+          virtualenv -p /usr/bin/python3 /tmp/venvhtml
+          . /tmp/venvhtml/bin/activate
+          pip install -r doc/sphinx/requirements.txt
+          make htmldocs
 
   - job: todo
     displayName: 'Search for TODO within source tree'
@@ -140,7 +144,7 @@ jobs:
           export USER=azure
           virtualenv -p /usr/bin/python3 /tmp/venv
           . /tmp/venv/bin/activate
-          pip install pyelftools pytest
+          pip install pyelftools pytest pygit2
           export UBOOT_TRAVIS_BUILD_DIR=/tmp/sandbox_spl
           export PYTHONPATH=${UBOOT_TRAVIS_BUILD_DIR}/scripts/dtc/pylibfdt
           export PATH=${UBOOT_TRAVIS_BUILD_DIR}/scripts/dtc:${PATH}
@@ -182,7 +186,7 @@ jobs:
           OVERRIDE: "-O clang-10"
         sandbox_spl:
           TEST_PY_BD: "sandbox_spl"
-          TEST_PY_TEST_SPEC: "test_ofplatdata or test_handoff"
+          TEST_PY_TEST_SPEC: "test_ofplatdata or test_handoff or test_spl"
         sandbox_flattree:
           TEST_PY_BD: "sandbox_flattree"
         evb_ast2500:
@@ -454,7 +458,7 @@ jobs:
           cat << "EOF" >> build.sh
           if [[ "${BUILDMAN}" != "" ]]; then
               ret=0;
-              tools/buildman/buildman -o /tmp -P -W ${BUILDMAN} ${OVERRIDE} || ret=$?;
+              tools/buildman/buildman -o /tmp -P -E -W ${BUILDMAN} ${OVERRIDE} || ret=$?;
               if [[ $ret -ne 0 ]]; then
                   tools/buildman/buildman -o /tmp -seP ${BUILDMAN};
                   exit $ret;

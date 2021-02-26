@@ -655,16 +655,16 @@ static int spinand_mtd_write(struct mtd_info *mtd, loff_t to,
 static bool spinand_isbad(struct nand_device *nand, const struct nand_pos *pos)
 {
 	struct spinand_device *spinand = nand_to_spinand(nand);
+	u8 marker[2] = { };
 	struct nand_page_io_req req = {
 		.pos = *pos,
-		.ooblen = 2,
+		.ooblen = sizeof(marker),
 		.ooboffs = 0,
-		.oobbuf.in = spinand->oobbuf,
+		.oobbuf.in = marker,
 		.mode = MTD_OPS_RAW,
 	};
 	int ret;
 
-	memset(spinand->oobbuf, 0, 2);
 	ret = spinand_select_target(spinand, pos->target);
 	if (ret)
 		return ret;
@@ -673,7 +673,7 @@ static bool spinand_isbad(struct nand_device *nand, const struct nand_pos *pos)
 	if (ret)
 		return ret;
 
-	if (spinand->oobbuf[0] != 0xff || spinand->oobbuf[1] != 0xff)
+	if (marker[0] != 0xff || marker[1] != 0xff)
 		return true;
 
 	return false;
@@ -702,28 +702,20 @@ static int spinand_mtd_block_isbad(struct mtd_info *mtd, loff_t offs)
 static int spinand_markbad(struct nand_device *nand, const struct nand_pos *pos)
 {
 	struct spinand_device *spinand = nand_to_spinand(nand);
+	u8 marker[2] = { };
 	struct nand_page_io_req req = {
 		.pos = *pos,
 		.ooboffs = 0,
-		.ooblen = 2,
-		.oobbuf.out = spinand->oobbuf,
+		.ooblen = sizeof(marker),
+		.oobbuf.out = marker,
+		.mode = MTD_OPS_RAW,
 	};
 	int ret;
 
-	/* Erase block before marking it bad. */
 	ret = spinand_select_target(spinand, pos->target);
 	if (ret)
 		return ret;
 
-	ret = spinand_write_enable_op(spinand);
-	if (ret)
-		return ret;
-
-	ret = spinand_erase_op(spinand, pos);
-	if (ret)
-		return ret;
-
-	memset(spinand->oobbuf, 0, 2);
 	return spinand_write_page(spinand, &req);
 }
 
@@ -1173,7 +1165,7 @@ static int spinand_probe(struct udevice *dev)
 		return -ENOMEM;
 	sprintf(mtd->name, "spi-nand%d", spi_nand_idx++);
 	spinand->slave = slave;
-	spinand_set_of_node(spinand, dev->node.np);
+	spinand_set_ofnode(spinand, dev_ofnode(dev));
 #endif
 
 	ret = spinand_init(spinand);
@@ -1255,6 +1247,6 @@ U_BOOT_DRIVER(spinand) = {
 	.name = "spi_nand",
 	.id = UCLASS_MTD,
 	.of_match = spinand_ids,
-	.priv_auto_alloc_size = sizeof(struct spinand_device),
+	.priv_auto	= sizeof(struct spinand_device),
 	.probe = spinand_probe,
 };

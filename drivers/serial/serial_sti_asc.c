@@ -3,13 +3,14 @@
  * Support for Serial I/O using STMicroelectronics' on-chip ASC.
  *
  * Copyright (C) 2017, STMicroelectronics - All Rights Reserved
- * Author(s): Patrice Chotard, <patrice.chotard@st.com> for STMicroelectronics.
+ * Author(s): Patrice Chotard, <patrice.chotard@foss.st.com> for STMicroelectronics.
  */
 
 #include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <serial.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <linux/bitops.h>
 
@@ -206,6 +207,6 @@ U_BOOT_DRIVER(serial_sti_asc) = {
 	.of_match = sti_serial_of_match,
 	.ops = &sti_asc_serial_ops,
 	.probe = sti_asc_serial_probe,
-	.priv_auto_alloc_size = sizeof(struct sti_asc_serial),
+	.priv_auto	= sizeof(struct sti_asc_serial),
 };
 

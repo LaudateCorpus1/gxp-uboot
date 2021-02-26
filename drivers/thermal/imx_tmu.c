@@ -6,6 +6,7 @@
 
 #include <config.h>
 #include <common.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/sys_proto.h>
@@ -14,6 +15,7 @@
 #include <dm/device.h>
 #include <errno.h>
 #include <fuse.h>
+#include <linux/delay.h>
 #include <malloc.h>
 #include <thermal.h>
 
@@ -125,7 +127,7 @@ struct imx_tmu_plat {
 
 static int read_temperature(struct udevice *dev, int *temp)
 {
-	struct imx_tmu_plat *pdata = dev_get_platdata(dev);
+	struct imx_tmu_plat *pdata = dev_get_plat(dev);
 	ulong drv_data = dev_get_driver_data(dev);
 	u32 val;
 	u32 retry = 10;
@@ -174,7 +176,7 @@ static int read_temperature(struct udevice *dev, int *temp)
 
 int imx_tmu_get_temp(struct udevice *dev, int *temp)
 {
-	struct imx_tmu_plat *pdata = dev_get_platdata(dev);
+	struct imx_tmu_plat *pdata = dev_get_plat(dev);
 	int cpu_tmp = 0;
 	int ret;
 
@@ -205,7 +207,7 @@ static int imx_tmu_calibration(struct udevice *dev)
 	int i, val, len, ret;
 	u32 range[4];
 	const fdt32_t *calibration;
-	struct imx_tmu_plat *pdata = dev_get_platdata(dev);
+	struct imx_tmu_plat *pdata = dev_get_plat(dev);
 	ulong drv_data = dev_get_driver_data(dev);
 
 	debug("%s\n", __func__);
@@ -247,7 +249,7 @@ void __weak imx_tmu_arch_init(void *reg_base)
 
 static void imx_tmu_init(struct udevice *dev)
 {
-	struct imx_tmu_plat *pdata = dev_get_platdata(dev);
+	struct imx_tmu_plat *pdata = dev_get_plat(dev);
 	ulong drv_data = dev_get_driver_data(dev);
 
 	debug("%s\n", __func__);
@@ -281,7 +283,7 @@ static void imx_tmu_init(struct udevice *dev)
 
 static int imx_tmu_enable_msite(struct udevice *dev)
 {
-	struct imx_tmu_plat *pdata = dev_get_platdata(dev);
+	struct imx_tmu_plat *pdata = dev_get_plat(dev);
 	ulong drv_data = dev_get_driver_data(dev);
 	u32 reg;
 
@@ -337,7 +339,7 @@ static int imx_tmu_enable_msite(struct udevice *dev)
 
 static int imx_tmu_bind(struct udevice *dev)
 {
-	struct imx_tmu_plat *pdata = dev_get_platdata(dev);
+	struct imx_tmu_plat *pdata = dev_get_plat(dev);
 	int ret;
 	ofnode node, offset;
 	const char *name;
@@ -369,7 +371,7 @@ static int imx_tmu_bind(struct udevice *dev)
 
 static int imx_tmu_parse_fdt(struct udevice *dev)
 {
-	struct imx_tmu_plat *pdata = dev_get_platdata(dev), *p_parent_data;
+	struct imx_tmu_plat *pdata = dev_get_plat(dev), *p_parent_data;
 	struct ofnode_phandle_args args;
 	ofnode trips_np;
 	int ret;
@@ -384,7 +386,7 @@ static int imx_tmu_parse_fdt(struct udevice *dev)
 		return 0;
 	}
 
-	p_parent_data = dev_get_platdata(dev->parent);
+	p_parent_data = dev_get_plat(dev->parent);
 	if (p_parent_data->zone_node)
 		pdata->regs = p_parent_data->regs;
 
@@ -429,7 +431,7 @@ static int imx_tmu_parse_fdt(struct udevice *dev)
 
 static int imx_tmu_probe(struct udevice *dev)
 {
-	struct imx_tmu_plat *pdata = dev_get_platdata(dev);
+	struct imx_tmu_plat *pdata = dev_get_plat(dev);
 	int ret;
 
 	ret = imx_tmu_parse_fdt(dev);
@@ -462,6 +464,6 @@ U_BOOT_DRIVER(imx_tmu) = {
 	.of_match = imx_tmu_ids,
 	.bind = imx_tmu_bind,
 	.probe	= imx_tmu_probe,
-	.platdata_auto_alloc_size = sizeof(struct imx_tmu_plat),
+	.plat_auto	= sizeof(struct imx_tmu_plat),
 	.flags  = DM_FLAG_PRE_RELOC,
 };

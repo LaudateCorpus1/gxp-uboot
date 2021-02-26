@@ -244,6 +244,21 @@ static char *dp_media(char *s, struct efi_device_path *dp)
 			     cddp->partition_start, cddp->partition_size);
 		break;
 	}
+	case DEVICE_PATH_SUB_TYPE_VENDOR_PATH: {
+		int i, n;
+		struct efi_device_path_vendor *vdp =
+			(struct efi_device_path_vendor *)dp;
+
+		s += sprintf(s, "VenMedia(%pUl", &vdp->guid);
+		n = (int)vdp->dp.length - sizeof(struct efi_device_path_vendor);
+		if (n > 0) {
+			s += sprintf(s, ",");
+			for (i = 0; i < n; ++i)
+				s += sprintf(s, "%02x", vdp->vendor_data[i]);
+		}
+		s += sprintf(s, ")");
+		break;
+	}
 	case DEVICE_PATH_SUB_TYPE_FILE_PATH: {
 		struct efi_device_path_file_path *fp =
 			(struct efi_device_path_file_path *)dp;
@@ -354,11 +369,18 @@ static uint16_t EFIAPI *efi_convert_device_path_to_text(
 
 	if (!device_path)
 		goto out;
-	while (device_path &&
-	       str + MAX_NODE_LEN < buffer + MAX_PATH_LEN) {
-		*str++ = '/';
-		str = efi_convert_single_device_node_to_text(str, device_path);
-		device_path = efi_dp_next(device_path);
+	while (device_path && str + MAX_NODE_LEN < buffer + MAX_PATH_LEN) {
+		if (device_path->type == DEVICE_PATH_TYPE_END) {
+			if (device_path->sub_type !=
+			    DEVICE_PATH_SUB_TYPE_INSTANCE_END)
+				break;
+			*str++ = ',';
+		} else {
+			*str++ = '/';
+			str = efi_convert_single_device_node_to_text(
+							str, device_path);
+		}
+		*(u8 **)&device_path += device_path->length;
 	}
 
 	text = efi_str_to_u16(buffer);

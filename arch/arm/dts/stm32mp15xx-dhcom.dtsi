@@ -58,7 +58,6 @@
 	phy-mode = "rmii";
 	max-speed = <100>;
 	phy-handle = <&phy0>;
-	st,eth_ref_clk_sel;
 	phy-reset-gpios = <&gpioh 15 GPIO_ACTIVE_LOW>;
 
 	mdio0 {
@@ -267,7 +266,7 @@
 			pinmux = <STM32_PINMUX('G', 13, AF11)>, /* ETH1_RMII_TXD0 */
 				 <STM32_PINMUX('G', 14, AF11)>, /* ETH1_RMII_TXD1 */
 				 <STM32_PINMUX('B', 11, AF11)>, /* ETH1_RMII_TX_EN */
-				 <STM32_PINMUX('A', 1, AF0)>,   /* ETH1_RMII_REF_CLK */
+				 <STM32_PINMUX('A', 1, AF11)>,  /* ETH1_RMII_REF_CLK */
 				 <STM32_PINMUX('A', 2, AF11)>,  /* ETH1_MDIO */
 				 <STM32_PINMUX('C', 1, AF11)>;  /* ETH1_MDC */
 			bias-disable;
@@ -299,8 +298,8 @@
 
 &qspi {
 	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&qspi_clk_pins_a &qspi_bk1_pins_a &qspi_bk2_pins_a>;
-	pinctrl-1 = <&qspi_clk_sleep_pins_a &qspi_bk1_sleep_pins_a &qspi_bk2_sleep_pins_a>;
+	pinctrl-0 = <&qspi_clk_pins_a &qspi_bk1_pins_a>;
+	pinctrl-1 = <&qspi_clk_sleep_pins_a &qspi_bk1_sleep_pins_a>;
 	reg = <0x58003000 0x1000>, <0x70000000 0x4000000>;
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -309,15 +308,6 @@
 	flash0: mx66l51235l@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
-		spi-rx-bus-width = <4>;
-		spi-max-frequency = <108000000>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-	};
-
-	flash1: mx66l51235l@1 {
-		compatible = "jedec,spi-nor";
-		reg = <1>;
 		spi-rx-bus-width = <4>;
 		spi-max-frequency = <108000000>;
 		#address-cells = <1>;
@@ -338,14 +328,27 @@
 	pinctrl-0 = <&sdmmc1_b4_pins_a &sdmmc1_dir_pins_a>;
 	pinctrl-1 = <&sdmmc1_b4_od_pins_a &sdmmc1_dir_pins_a>;
 	pinctrl-2 = <&sdmmc1_b4_sleep_pins_a &sdmmc1_dir_sleep_pins_a>;
-	cd-gpios = <&gpioi 8 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+	cd-gpios = <&gpiog 1 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 	disable-wp;
 	st,sig-dir;
 	st,neg-edge;
-	st,use-ckin;
 	bus-width = <4>;
 	vmmc-supply = <&vdd_sd>;
 	status = "okay";
+};
+
+&sdmmc1_b4_pins_a {
+	/*
+	 * SD bus pull-up resistors:
+	 * - optional on SoMs with SD voltage translator
+	 * - mandatory on SoMs without SD voltage translator
+	 */
+	pins1 {
+		bias-pull-up;
+	};
+	pins2 {
+		bias-pull-up;
+	};
 };
 
 &sdmmc2 {

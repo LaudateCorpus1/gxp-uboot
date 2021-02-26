@@ -12,10 +12,14 @@
  * linux/Documentation/i386/boot.txt
  */
 
+#define LOG_CATEGORY	LOGC_BOOT
+
 #include <common.h>
+#include <bootm.h>
 #include <command.h>
 #include <env.h>
 #include <irq_func.h>
+#include <log.h>
 #include <malloc.h>
 #include <acpi/acpi_table.h>
 #include <asm/io.h>
@@ -28,6 +32,7 @@
 #include <asm/arch/timestamp.h>
 #endif
 #include <linux/compiler.h>
+#include <linux/ctype.h>
 #include <linux/libfdt.h>
 
 /*
@@ -56,8 +61,8 @@
  *	BZIMAGE_LOAD_ADDR or ZIMAGE_LOAD_ADDR
  * @base_ptr: Pointer to the boot parameters, typically at address
  *	DEFAULT_SETUP_BASE
- * @cmdline: Address of 'override' command line, or 0 to use the one in the
- *	setup block
+ * @cmdline: Environment variable containing the 'override' command line, or
+ *	NULL to use the one in the setup block
  */
 struct zboot_state {
 	ulong bzimage_addr;
@@ -66,7 +71,7 @@ struct zboot_state {
 	ulong initrd_size;
 	ulong load_address;
 	struct boot_params *base_ptr;
-	ulong cmdline;
+	char *cmdline;
 } state;
 
 enum {
@@ -104,8 +109,11 @@ static void build_command_line(char *command_line, int auto_boot)
 
 	if (env_command_line)
 		strcat(command_line, env_command_line);
-
-	printf("Kernel command line: \"%s\"\n", command_line);
+#ifdef DEBUG
+	printf("Kernel command line:");
+	puts(command_line);
+	printf("\n");
+#endif
 }
 
 static int kernel_magic_ok(struct setup_header *hdr)
@@ -172,10 +180,18 @@ static const char *get_kernel_version(struct boot_params *params,
 {
 	struct setup_header *hdr = &params->hdr;
 	int bootproto;
+	const char *s, *end;
 
 	bootproto = get_boot_protocol(hdr, false);
 	if (bootproto < 0x0200 || hdr->setup_sects < 15)
 		return NULL;
+
+	/* sanity-check the kernel version in case it is missing */
+	for (s = kernel_base + hdr->kernel_version + 0x200, end = s + 0x100; *s;
+	     s++) {
+		if (!isprint(*s))
+			return NULL;
+	}
 
 	return kernel_base + hdr->kernel_version + 0x200;
 }
@@ -200,13 +216,13 @@ struct boot_params *load_zimage(char *image, unsigned long kernel_size,
 
 	/* determine size of setup */
 	if (0 == hdr->setup_sects) {
-		printf("Setup Sectors = 0 (defaulting to 4)\n");
+		log_warning("Setup Sectors = 0 (defaulting to 4)\n");
 		setup_size = 5 * 512;
 	} else {
 		setup_size = (hdr->setup_sects + 1) * 512;
 	}
 
-	printf("Setup Size = 0x%8.8lx\n", (ulong)setup_size);
+	log_debug("Setup Size = 0x%8.8lx\n", (ulong)setup_size);
 
 	if (setup_size > SETUP_MAX_SIZE)
 		printf("Error: Setup is too large (%d bytes)\n", setup_size);
@@ -214,8 +230,8 @@ struct boot_params *load_zimage(char *image, unsigned long kernel_size,
 	/* determine boot protocol version */
 	bootproto = get_boot_protocol(hdr, true);
 
-	printf("Using boot protocol version %x.%02x\n",
-	       (bootproto & 0xff00) >> 8, bootproto & 0xff);
+	log_debug("Using boot protocol version %x.%02x\n",
+		  (bootproto & 0xff00) >> 8, bootproto & 0xff);
 
 	version = get_kernel_version(params, image);
 	if (version)
@@ -292,6 +308,7 @@ int setup_zimage(struct boot_params *setup_base, char *cmd_line, int auto_boot,
 	struct setup_header *hdr = &setup_base->hdr;
 	int bootproto = get_boot_protocol(hdr, false);
 
+	log_debug("Setup E820 entries\n");
 	setup_base->e820_entries = install_e820_map(
 		ARRAY_SIZE(setup_base->e820_map), setup_base->e820_map);
 
@@ -317,6 +334,12 @@ int setup_zimage(struct boot_params *setup_base, char *cmd_line, int auto_boot,
 	}
 
 	if (cmd_line) {
+		int max_size = 0xff;
+		int ret;
+
+		log_debug("Setup cmdline\n");
+		if (bootproto >= 0x0206)
+			max_size = hdr->cmdline_size;
 		if (bootproto >= 0x0202) {
 			hdr->cmd_line_ptr = (uintptr_t)cmd_line;
 		} else if (bootproto >= 0x0200) {
@@ -332,6 +355,15 @@ int setup_zimage(struct boot_params *setup_base, char *cmd_line, int auto_boot,
 			strcpy(cmd_line, (char *)cmdline_force);
 		else
 			build_command_line(cmd_line, auto_boot);
+		ret = bootm_process_cmdline(cmd_line, max_size, BOOTM_CL_ALL);
+		if (ret) {
+			printf("Cmdline setup failed (max_size=%x, bootproto=%x, err=%d)\n",
+			       max_size, bootproto, ret);
+			return ret;
+		}
+		printf("Kernel command line: \"");
+		puts(cmd_line);
+		printf("\"\n");
 	}
 
 	if (IS_ENABLED(CONFIG_INTEL_MID) && bootproto >= 0x0207)
@@ -340,6 +372,7 @@ int setup_zimage(struct boot_params *setup_base, char *cmd_line, int auto_boot,
 	if (IS_ENABLED(CONFIG_GENERATE_ACPI_TABLE))
 		setup_base->acpi_rsdp_addr = acpi_get_rsdp_addr();
 
+	log_debug("Setup devicetree\n");
 	setup_device_tree(hdr, (const void *)env_get_hex("fdtaddr", 0));
 	setup_video(&setup_base->screen_info);
 
@@ -391,7 +424,7 @@ static int do_zboot_start(struct cmd_tbl *cmdtp, int flag, int argc,
 		state.bzimage_addr = 0;
 	}
 	if (argc >= 7)
-		state.cmdline = simple_strtoul(argv[6], NULL, 16);
+		state.cmdline = env_get(argv[6]);
 
 	return 0;
 }
@@ -405,7 +438,8 @@ static int do_zboot_load(struct cmd_tbl *cmdtp, int flag, int argc,
 		struct boot_params *from = (struct boot_params *)state.base_ptr;
 
 		base_ptr = (struct boot_params *)DEFAULT_SETUP_BASE;
-		printf("Building boot_params at 0x%8.8lx\n", (ulong)base_ptr);
+		log_debug("Building boot_params at 0x%8.8lx\n",
+			  (ulong)base_ptr);
 		memset(base_ptr, '\0', sizeof(*base_ptr));
 		base_ptr->hdr = from->hdr;
 	} else {
@@ -436,7 +470,7 @@ static int do_zboot_setup(struct cmd_tbl *cmdtp, int flag, int argc,
 	}
 	ret = setup_zimage(base_ptr, (char *)base_ptr + COMMAND_LINE_OFFSET,
 			   0, state.initrd_addr, state.initrd_size,
-			   state.cmdline);
+			   (ulong)state.cmdline);
 	if (ret) {
 		puts("Setting up boot parameters failed ...\n");
 		return CMD_RET_FAILURE;
@@ -570,19 +604,12 @@ static void show_loader(struct setup_header *hdr)
 	printf("\n");
 }
 
-int do_zboot_dump(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+void zimage_dump(struct boot_params *base_ptr)
 {
-	struct boot_params *base_ptr = state.base_ptr;
 	struct setup_header *hdr;
 	const char *version;
 	int i;
 
-	if (argc > 1)
-		base_ptr = (void *)simple_strtoul(argv[1], NULL, 16);
-	if (!base_ptr) {
-		printf("No zboot setup_base\n");
-		return CMD_RET_FAILURE;
-	}
 	printf("Setup located at %p:\n\n", base_ptr);
 	print_num64("ACPI RSDP addr", base_ptr->acpi_rsdp_addr);
 
@@ -658,6 +685,20 @@ int do_zboot_dump(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	print_num("Handover offset", hdr->handover_offset);
 	if (get_boot_protocol(hdr, false) >= 0x215)
 		print_num("Kernel info offset", hdr->kernel_info_offset);
+}
+
+static int do_zboot_dump(struct cmd_tbl *cmdtp, int flag, int argc,
+			 char *const argv[])
+{
+	struct boot_params *base_ptr = state.base_ptr;
+
+	if (argc > 1)
+		base_ptr = (void *)simple_strtoul(argv[1], NULL, 16);
+	if (!base_ptr) {
+		printf("No zboot setup_base\n");
+		return CMD_RET_FAILURE;
+	}
+	zimage_dump(base_ptr);
 
 	return 0;
 }
@@ -727,8 +768,9 @@ U_BOOT_CMDREP_COMPLETE(
 	"      initrd size - The size of the initrd image to use, if any.\n"
 	"      setup -       The address of the kernel setup region, if this\n"
 	"                    is not at addr\n"
-	"      cmdline -     The address of the kernel command line, to\n"
-	"                    override U-Boot's normal cmdline generation\n"
+	"      cmdline -     Environment variable containing the kernel\n"
+	"                    command line, to override U-Boot's normal\n"
+	"                    cmdline generation\n"
 	"\n"
 	"Sub-commands to do part of the zboot sequence:\n"
 	"\tstart [addr [arg ...]] - specify arguments\n"

@@ -10,6 +10,7 @@
 #include <serial.h>
 #include <stdio_dev.h>
 #include <post.h>
+#include <asm/global_data.h>
 #include <linux/compiler.h>
 #include <errno.h>
 #include <linux/delay.h>
@@ -90,7 +91,7 @@ static int on_baudrate(const char *name, const char *value, enum env_op op,
 
 		if ((flags & H_INTERACTIVE) != 0)
 			while (1) {
-				if (getc() == '\r')
+				if (getchar() == '\r')
 					break;
 			}
 

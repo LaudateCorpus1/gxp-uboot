@@ -54,7 +54,7 @@ void print_freq(uint64_t freq, const char *s)
 {
 	unsigned long m = 0;
 	uint32_t f;
-	static const char names[] = {'G', 'M', 'K'};
+	static const char names[] = {'G', 'M', 'k'};
 	unsigned long d = 1e9;
 	char c = 0;
 	unsigned int i;
@@ -169,11 +169,10 @@ int print_buffer(ulong addr, const void *data, uint width, uint count,
 				x = lb.us[i] = *(volatile uint16_t *)data;
 			else
 				x = lb.uc[i] = *(volatile uint8_t *)data;
-#if defined(CONFIG_SPL_BUILD)
-			printf(" %x", (uint)x);
-#else
-			printf(" %0*lx", width * 2, x);
-#endif
+			if (CONFIG_IS_ENABLED(USE_TINY_PRINTF))
+				printf(" %x", (uint)x);
+			else
+				printf(" %0*lx", width * 2, x);
 			data += width;
 		}
 

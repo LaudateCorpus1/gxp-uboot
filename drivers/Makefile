@@ -14,6 +14,7 @@ obj-$(CONFIG_$(SPL_TPL_)INPUT) += input/
 obj-$(CONFIG_$(SPL_TPL_)LED) += led/
 obj-$(CONFIG_$(SPL_TPL_)MMC_SUPPORT) += mmc/
 obj-y += mtd/
+obj-$(CONFIG_$(SPL_)MULTIPLEXER) += mux/
 obj-$(CONFIG_$(SPL_TPL_)PCH_SUPPORT) += pch/
 obj-$(CONFIG_$(SPL_TPL_)PCI) += pci/
 obj-$(CONFIG_$(SPL_TPL_)PHY) += phy/
@@ -26,9 +27,9 @@ obj-$(CONFIG_$(SPL_TPL_)TIMER) += timer/
 obj-$(CONFIG_$(SPL_TPL_)VIRTIO) += virtio/
 obj-$(CONFIG_$(SPL_)DM_MAILBOX) += mailbox/
 obj-$(CONFIG_$(SPL_)REMOTEPROC) += remoteproc/
+obj-$(CONFIG_$(SPL_)SYSINFO) += sysinfo/
 obj-$(CONFIG_$(SPL_TPL_)TPM) += tpm/
 obj-$(CONFIG_$(SPL_TPL_)ACPI_PMC) += power/acpi_pmc/
-obj-$(CONFIG_$(SPL_)BOARD) += board/
 obj-$(CONFIG_XEN) += xen/
 obj-$(CONFIG_$(SPL_)FPGA) += fpga/
 
@@ -68,6 +69,7 @@ endif
 
 ifdef CONFIG_TPL_BUILD
 
+obj-$(CONFIG_TPL_BOOTCOUNT_LIMIT) += bootcount/
 obj-$(CONFIG_TPL_MPC8XXX_INIT_DDR_SUPPORT) += ddr/fsl/
 
 endif

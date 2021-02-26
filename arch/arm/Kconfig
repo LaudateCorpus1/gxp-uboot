@@ -621,11 +621,6 @@ config TARGET_FLEA3
 	bool "Support flea3"
 	select CPU_ARM1136
 
-config TARGET_MX35PDK
-	bool "Support mx35pdk"
-	select BOARD_LATE_INIT
-	select CPU_ARM1136
-
 config ARCH_BCM283X
 	bool "Broadcom BCM283X family"
 	select DM
@@ -799,6 +794,7 @@ config ARCH_OMAP2PLUS
 	select SPL_BOARD_INIT if SPL
 	select SPL_STACK_R if SPL
 	select SUPPORT_SPL
+	imply TI_SYSC if DM && OF_CONTROL
 	imply FIT
 
 config ARCH_MESON
@@ -1045,6 +1041,7 @@ config ARCH_SUNXI
 	select SPL_USE_TINY_PRINTF
 	select USE_PREBOOT
 	select SYS_RELOC_GD_ENV_ADDR
+	imply BOARD_LATE_INIT
 	imply CMD_DM
 	imply CMD_GPT
 	imply CMD_UBI if MTD_RAW_NAND
@@ -1224,18 +1221,6 @@ config TARGET_LS2080A_EMU
 	  development platform that supports the QorIQ LS2080A
 	  Layerscape Architecture processor.
 
-config TARGET_LS2080A_SIMU
-	bool "Support ls2080a_simu"
-	select ARCH_LS2080A
-	select ARM64
-	select ARMV8_MULTIENTRY
-	select BOARD_LATE_INIT
-	help
-	  Support for Freescale LS2080A_SIMU platform.
-	  The LS2080A Development System (QDS) is a pre silicon
-	  development platform that supports the QorIQ LS2080A
-	  Layerscape Architecture processor.
-
 config TARGET_LS1088AQDS
 	bool "Support ls1088aqds"
 	select ARCH_LS1088A
@@ -1325,6 +1310,18 @@ config TARGET_LX2160AQDS
 	  The lx2160aqds (LX2160A QorIQ Development System (QDS)
 	  is a high-performance development platform that supports the
 	  QorIQ LX2160A/LX2120A/LX2080A Layerscape Architecture processor.
+
+config TARGET_LX2162AQDS
+	bool "Support lx2162aqds"
+	select ARCH_LX2162A
+	select ARCH_MISC_INIT
+	select ARM64
+	select ARMV8_MULTIENTRY
+	select ARCH_SUPPORT_TFABOOT
+	select BOARD_LATE_INIT
+	help
+	  Support for NXP LX2162AQDS platform.
+	  The lx2162aqds support is based on LX2160A Layerscape Architecture processor.
 
 config TARGET_HIKEY
 	bool "Support HiKey 96boards Consumer Edition Platform"
@@ -1620,6 +1617,16 @@ config TARGET_LS1046AFRWY
 	  development platform that supports the QorIQ LS1046A
 	  Layerscape Architecture processor.
 
+config TARGET_SL28
+	bool "Support sl28"
+	select ARCH_LS1028A
+	select ARM64
+	select ARMV8_MULTIENTRY
+	select SUPPORT_SPL
+	select BINMAN
+	help
+	  Support for Kontron SMARC-sAL28 board.
+
 config TARGET_COLIBRI_PXA270
 	bool "Support colibri_pxa270"
 	select CPU_PXA
@@ -1711,7 +1718,7 @@ config ARCH_STM32MP
 config ARCH_ROCKCHIP
 	bool "Support Rockchip SoCs"
 	select BLK
-	select BINMAN if !ARM64
+	select BINMAN if SPL_OPTEE
 	select DM
 	select DM_GPIO
 	select DM_I2C
@@ -1973,7 +1980,6 @@ source "board/cavium/thunderx/Kconfig"
 source "board/cirrus/edb93xx/Kconfig"
 source "board/eets/pdu001/Kconfig"
 source "board/emulation/qemu-arm/Kconfig"
-source "board/freescale/ls2080a/Kconfig"
 source "board/freescale/ls2080aqds/Kconfig"
 source "board/freescale/ls2080ardb/Kconfig"
 source "board/freescale/ls1088a/Kconfig"
@@ -1991,13 +1997,13 @@ source "board/freescale/ls1012aqds/Kconfig"
 source "board/freescale/ls1012ardb/Kconfig"
 source "board/freescale/ls1012afrdm/Kconfig"
 source "board/freescale/lx2160a/Kconfig"
-source "board/freescale/mx35pdk/Kconfig"
 source "board/freescale/s32v234evb/Kconfig"
 source "board/grinn/chiliboard/Kconfig"
 source "board/hisilicon/hikey/Kconfig"
 source "board/hisilicon/hikey960/Kconfig"
 source "board/hisilicon/poplar/Kconfig"
 source "board/isee/igep003x/Kconfig"
+source "board/kontron/sl28/Kconfig"
 source "board/myir/mys_6ulx/Kconfig"
 source "board/spear/spear300/Kconfig"
 source "board/spear/spear310/Kconfig"

@@ -43,6 +43,13 @@ int binman_entry_map(ofnode parent, const char *name, void **bufp, int *sizep);
 void binman_set_rom_offset(int rom_offset);
 
 /**
+ * binman_get_rom_offset() - Get the ROM memory-map offset
+ *
+ * @returns offset from an image_pos to the memory-mapped address
+ */
+int binman_get_rom_offset(void);
+
+/**
  * binman_entry_find() - Find a binman symbol
  *
  * This searches the binman information in the device tree for a symbol of the
@@ -62,6 +69,20 @@ int binman_entry_find(const char *name, struct binman_entry *entry);
  * @return Node that was found, ofnode_null() if not found
  */
 ofnode binman_section_find_node(const char *name);
+
+/**
+ * binman_select_subnode() - Select a subnode to use to find entries
+ *
+ * Normally binman selects the top-level node for future entry requests, such as
+ * binman_entry_find(). This function allows a subnode to be chosen instead.
+ *
+ * @name: Name of subnode, typically a section. This must be in the top-level
+ *	binman node
+ * @return 0 if OK, -EINVAL if there is no /binman node, -ECHILD if multiple
+ *	images are being used but the first image is not available, -ENOENT if
+ *	the requested subnode cannot be found
+ */
+int binman_select_subnode(const char *name);
 
 /**
  * binman_init() - Set up the binman symbol information

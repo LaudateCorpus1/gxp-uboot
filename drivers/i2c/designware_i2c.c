@@ -598,7 +598,7 @@ static int __dw_i2c_init(struct i2c_regs *i2c_base, int speed, int slaveaddr)
 	writel(IC_RX_TL, &i2c_base->ic_rx_tl);
 	writel(IC_TX_TL, &i2c_base->ic_tx_tl);
 	writel(IC_STOP_DET, &i2c_base->ic_intr_mask);
-#ifndef CONFIG_DM_I2C
+#if !CONFIG_IS_ENABLED(DM_I2C)
 	_dw_i2c_set_bus_speed(NULL, i2c_base, speed, IC_CLK);
 	writel(slaveaddr, &i2c_base->ic_sar);
 #endif
@@ -611,7 +611,7 @@ static int __dw_i2c_init(struct i2c_regs *i2c_base, int speed, int slaveaddr)
 	return 0;
 }
 
-#ifndef CONFIG_DM_I2C
+#if !CONFIG_IS_ENABLED(DM_I2C)
 /*
  * The legacy I2C functions. These need to get removed once
  * all users of this driver are converted to DM.
@@ -762,7 +762,7 @@ static int designware_i2c_probe_chip(struct udevice *bus, uint chip_addr,
 	return ret;
 }
 
-int designware_i2c_ofdata_to_platdata(struct udevice *bus)
+int designware_i2c_of_to_plat(struct udevice *bus)
 {
 	struct dw_i2c *priv = dev_get_priv(bus);
 	int ret;
@@ -774,10 +774,12 @@ int designware_i2c_ofdata_to_platdata(struct udevice *bus)
 	dev_read_u32(bus, "i2c-sda-hold-time-ns", &priv->sda_hold_time_ns);
 
 	ret = reset_get_bulk(bus, &priv->resets);
-	if (ret)
-		dev_warn(bus, "Can't get reset: %d\n", ret);
-	else
+	if (ret) {
+		if (ret != -ENOTSUPP)
+			dev_warn(bus, "Can't get reset: %d\n", ret);
+	} else {
 		reset_deassert_bulk(&priv->resets);
+	}
 
 #if CONFIG_IS_ENABLED(CLK)
 	ret = clk_get_by_index(bus, 0, &priv->clk);
@@ -807,8 +809,8 @@ int designware_i2c_probe(struct udevice *bus)
 		return -ENXIO;
 	}
 
-	log_info("I2C bus %s version %#x\n", bus->name,
-		 readl(&priv->regs->comp_version));
+	log_debug("I2C bus %s version %#x\n", bus->name,
+		  readl(&priv->regs->comp_version));
 
 	return __dw_i2c_init(priv->regs, 0, 0);
 }
@@ -840,9 +842,9 @@ U_BOOT_DRIVER(i2c_designware) = {
 	.name	= "i2c_designware",
 	.id	= UCLASS_I2C,
 	.of_match = designware_i2c_ids,
-	.ofdata_to_platdata = designware_i2c_ofdata_to_platdata,
+	.of_to_plat = designware_i2c_of_to_plat,
 	.probe	= designware_i2c_probe,
-	.priv_auto_alloc_size = sizeof(struct dw_i2c),
+	.priv_auto	= sizeof(struct dw_i2c),
 	.remove = designware_i2c_remove,
 	.flags	= DM_FLAG_OS_PREPARE,
 	.ops	= &designware_i2c_ops,

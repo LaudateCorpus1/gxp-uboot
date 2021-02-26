@@ -4,6 +4,8 @@
  * Author(s): Vikas Manocha, <vikas.manocha@st.com> for STMicroelectronics.
  */
 
+#define LOG_CATEGORY UCLASS_GPIO
+
 #include <common.h>
 #include <clk.h>
 #include <dm.h>
@@ -17,6 +19,8 @@
 #include <linux/bitops.h>
 #include <linux/errno.h>
 #include <linux/io.h>
+
+#define STM32_GPIOS_PER_BANK		16
 
 #define MODE_BITS(gpio_pin)		((gpio_pin) * 2)
 #define MODE_BITS_MASK			3
@@ -210,11 +214,11 @@ static int stm32_gpio_set_dir_flags(struct udevice *dev, unsigned int offset,
 
 	} else if (flags & GPIOD_IS_IN) {
 		stm32_gpio_set_moder(regs, idx, STM32_GPIO_MODE_IN);
-		if (flags & GPIOD_PULL_UP)
-			stm32_gpio_set_pupd(regs, idx, STM32_GPIO_PUPD_UP);
-		else if (flags & GPIOD_PULL_DOWN)
-			stm32_gpio_set_pupd(regs, idx, STM32_GPIO_PUPD_DOWN);
 	}
+	if (flags & GPIOD_PULL_UP)
+		stm32_gpio_set_pupd(regs, idx, STM32_GPIO_PUPD_UP);
+	else if (flags & GPIOD_PULL_DOWN)
+		stm32_gpio_set_pupd(regs, idx, STM32_GPIO_PUPD_DOWN);
 
 	return 0;
 }
@@ -241,16 +245,16 @@ static int stm32_gpio_get_dir_flags(struct udevice *dev, unsigned int offset,
 		break;
 	case STM32_GPIO_MODE_IN:
 		dir_flags |= GPIOD_IS_IN;
-		switch (stm32_gpio_get_pupd(regs, idx)) {
-		case STM32_GPIO_PUPD_UP:
-			dir_flags |= GPIOD_PULL_UP;
-			break;
-		case STM32_GPIO_PUPD_DOWN:
-			dir_flags |= GPIOD_PULL_DOWN;
-			break;
-		default:
-			break;
-		}
+		break;
+	default:
+		break;
+	}
+	switch (stm32_gpio_get_pupd(regs, idx)) {
+	case STM32_GPIO_PUPD_UP:
+		dir_flags |= GPIOD_PULL_UP;
+		break;
+	case STM32_GPIO_PUPD_DOWN:
+		dir_flags |= GPIOD_PULL_DOWN;
 		break;
 	default:
 		break;
@@ -329,7 +333,7 @@ static int gpio_stm32_probe(struct udevice *dev)
 		dev_err(dev, "failed to enable clock\n");
 		return ret;
 	}
-	debug("clock enabled for device %s\n", dev->name);
+	dev_dbg(dev, "clock enabled\n");
 
 	return 0;
 }
@@ -340,5 +344,5 @@ U_BOOT_DRIVER(gpio_stm32) = {
 	.probe	= gpio_stm32_probe,
 	.ops	= &gpio_stm32_ops,
 	.flags	= DM_UC_FLAG_SEQ_ALIAS,
-	.priv_auto_alloc_size	= sizeof(struct stm32_gpio_priv),
+	.priv_auto	= sizeof(struct stm32_gpio_priv),
 };

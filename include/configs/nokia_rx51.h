@@ -75,14 +75,6 @@
 #define CONFIG_USBD_MANUFACTURER	"Nokia"
 #define CONFIG_USBD_PRODUCT_NAME	"N900"
 
-/* commands to include */
-
-#define CONFIG_SYS_I2C
-
-/*
- * TWL4030
- */
-
 #define GPIO_SLIDE			71
 
 /*
@@ -177,8 +169,6 @@ int rx51_kp_getc(struct stdio_dev *sdev);
 	"trymmcboot=if run switchmmc; then " \
 			"setenv mmctype fat;" \
 			"run trymmcallpartboot;" \
-			"setenv mmctype ext2;" \
-			"run trymmcallpartboot;" \
 			"setenv mmctype ext4;" \
 			"run trymmcallpartboot;" \
 		"fi\0" \
@@ -187,19 +177,10 @@ int rx51_kp_getc(struct stdio_dev *sdev);
 	"preboot=setenv mmcnum 1; setenv mmcpart 1;" \
 		"setenv mmcscriptfile bootmenu.scr;" \
 		"if run switchmmc; then " \
-			"setenv mmcdone true;" \
 			"setenv mmctype fat;" \
-			"if run scriptload; then true; else " \
-				"setenv mmctype ext2;" \
-				"if run scriptload; then true; else " \
-					"setenv mmctype ext4;" \
-					"if run scriptload; then true; else " \
-						"setenv mmcdone false;" \
-					"fi;" \
-				"fi;" \
-			"fi;" \
-			"if ${mmcdone}; then " \
-				"run scriptboot;" \
+			"if run scriptload; then run scriptboot; else " \
+				"setenv mmctype ext4;" \
+				"if run scriptload; then run scriptboot; fi;" \
 			"fi;" \
 		"fi;" \
 		"if run slide; then true; else " \
@@ -230,10 +211,6 @@ int rx51_kp_getc(struct stdio_dev *sdev);
 	"run emmcboot;" \
 	"run attachboot;" \
 	"echo"
-
-/*
- * Miscellaneous configurable options
- */
 
 /* default load address */
 #define CONFIG_SYS_LOAD_ADDR		(OMAP34XX_SDRC_CS0)

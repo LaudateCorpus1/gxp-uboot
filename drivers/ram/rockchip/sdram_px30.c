@@ -125,7 +125,15 @@ u32 addrmap[][8] = {
 struct dram_info dram_info;
 
 struct px30_sdram_params sdram_configs[] = {
+#if defined(CONFIG_RAM_PX30_DDR4)
+#include	"sdram-px30-ddr4-detect-333.inc"
+#elif defined(CONFIG_RAM_PX30_LPDDR2)
+#include	"sdram-px30-lpddr2-detect-333.inc"
+#elif defined(CONFIG_RAM_PX30_LPDDR3)
+#include	"sdram-px30-lpddr3-detect-333.inc"
+#else
 #include	"sdram-px30-ddr3-detect-333.inc"
+#endif
 };
 
 struct ddr_phy_skew skew = {
@@ -749,6 +757,6 @@ U_BOOT_DRIVER(dmc_px30) = {
 	.of_match = px30_dmc_ids,
 	.ops = &px30_dmc_ops,
 	.probe = px30_dmc_probe,
-	.priv_auto_alloc_size = sizeof(struct dram_info),
+	.priv_auto	= sizeof(struct dram_info),
 };
 #endif /* CONFIG_TPL_BUILD */

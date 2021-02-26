@@ -21,6 +21,7 @@
 #include <mmc.h>
 #include <part.h>
 #include <asm/cache.h>
+#include <asm/global_data.h>
 #include <dm/device_compat.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
@@ -760,7 +761,6 @@ static int esdhc_set_timing(struct mmc *mmc)
 	case MMC_HS_400_ES:
 		mixctrl |= MIX_CTRL_DDREN | MIX_CTRL_HS400_EN;
 		esdhc_write32(&regs->mixctrl, mixctrl);
-		esdhc_set_strobe_dll(mmc);
 		break;
 	case MMC_HS:
 	case MMC_HS_52:
@@ -791,7 +791,9 @@ static int esdhc_set_voltage(struct mmc *mmc)
 {
 	struct fsl_esdhc_priv *priv = dev_get_priv(mmc->dev);
 	struct fsl_esdhc *regs = priv->esdhc_regs;
+#if CONFIG_IS_ENABLED(DM_REGULATOR)
 	int ret;
+#endif
 
 	priv->signal_voltage = mmc->signal_voltage;
 	switch (mmc->signal_voltage) {
@@ -851,7 +853,7 @@ static void esdhc_stop_tuning(struct mmc *mmc)
 
 static int fsl_esdhc_execute_tuning(struct udevice *dev, uint32_t opcode)
 {
-	struct fsl_esdhc_plat *plat = dev_get_platdata(dev);
+	struct fsl_esdhc_plat *plat = dev_get_plat(dev);
 	struct fsl_esdhc_priv *priv = dev_get_priv(dev);
 	struct fsl_esdhc *regs = priv->esdhc_regs;
 	struct mmc *mmc = &plat->mmc;
@@ -933,6 +935,23 @@ static int esdhc_set_ios_common(struct fsl_esdhc_priv *priv, struct mmc *mmc)
 	int ret __maybe_unused;
 	u32 clock;
 
+#ifdef MMC_SUPPORTS_TUNING
+	/*
+	 * call esdhc_set_timing() before update the clock rate,
+	 * This is because current we support DDR and SDR mode,
+	 * Once the DDR_EN bit is set, the card clock will be
+	 * divide by 2 automatically. So need to do this before
+	 * setting clock rate.
+	 */
+	if (priv->mode != mmc->selected_mode) {
+		ret = esdhc_set_timing(mmc);
+		if (ret) {
+			printf("esdhc_set_timing error %d\n", ret);
+			return ret;
+		}
+	}
+#endif
+
 	/* Set the clock speed */
 	clock = mmc->clock;
 	if (clock < mmc->cfg->f_min)
@@ -957,13 +976,13 @@ static int esdhc_set_ios_common(struct fsl_esdhc_priv *priv, struct mmc *mmc)
 #endif
 	}
 
-	if (priv->mode != mmc->selected_mode) {
-		ret = esdhc_set_timing(mmc);
-		if (ret) {
-			printf("esdhc_set_timing error %d\n", ret);
-			return ret;
-		}
-	}
+	/*
+	 * For HS400/HS400ES mode, make sure set the strobe dll in the
+	 * target clock rate. So call esdhc_set_strobe_dll() after the
+	 * clock updated.
+	 */
+	if (mmc->selected_mode == MMC_HS_400 || mmc->selected_mode == MMC_HS_400_ES)
+		esdhc_set_strobe_dll(mmc);
 
 	if (priv->signal_voltage != mmc->signal_voltage) {
 		ret = esdhc_set_voltage(mmc);
@@ -1384,7 +1403,7 @@ __weak void init_clk_usdhc(u32 index)
 {
 }
 
-static int fsl_esdhc_ofdata_to_platdata(struct udevice *dev)
+static int fsl_esdhc_of_to_plat(struct udevice *dev)
 {
 #if !CONFIG_IS_ENABLED(OF_PLATDATA)
 	struct fsl_esdhc_priv *priv = dev_get_priv(dev);
@@ -1474,7 +1493,7 @@ static int fsl_esdhc_ofdata_to_platdata(struct udevice *dev)
 static int fsl_esdhc_probe(struct udevice *dev)
 {
 	struct mmc_uclass_priv *upriv = dev_get_uclass_priv(dev);
-	struct fsl_esdhc_plat *plat = dev_get_platdata(dev);
+	struct fsl_esdhc_plat *plat = dev_get_plat(dev);
 	struct fsl_esdhc_priv *priv = dev_get_priv(dev);
 	struct esdhc_soc_data *data =
 		(struct esdhc_soc_data *)dev_get_driver_data(dev);
@@ -1504,12 +1523,9 @@ static int fsl_esdhc_probe(struct udevice *dev)
 
 	if (CONFIG_IS_ENABLED(DM_GPIO) && !priv->non_removable) {
 		struct udevice *gpiodev;
-		struct driver_info *info;
 
-		info = (struct driver_info *)dtplat->cd_gpios->node;
-
-		ret = device_get_by_driver_info(info, &gpiodev);
-
+		ret = device_get_by_driver_info_idx(dtplat->cd_gpios->idx,
+						    &gpiodev);
 		if (ret)
 			return ret;
 
@@ -1545,7 +1561,7 @@ static int fsl_esdhc_probe(struct udevice *dev)
 	 * work as expected.
 	 */
 
-	init_clk_usdhc(dev->seq);
+	init_clk_usdhc(dev_seq(dev));
 
 #if CONFIG_IS_ENABLED(CLK)
 	/* Assigned clock already set clock */
@@ -1562,7 +1578,7 @@ static int fsl_esdhc_probe(struct udevice *dev)
 
 	priv->sdhc_clk = clk_get_rate(&priv->per_clk);
 #else
-	priv->sdhc_clk = mxc_get_clock(MXC_ESDHC_CLK + dev->seq);
+	priv->sdhc_clk = mxc_get_clock(MXC_ESDHC_CLK + dev_seq(dev));
 	if (priv->sdhc_clk <= 0) {
 		dev_err(dev, "Unable to get clk for %s\n", dev->name);
 		return -EINVAL;
@@ -1620,7 +1636,7 @@ static int fsl_esdhc_get_cd(struct udevice *dev)
 static int fsl_esdhc_send_cmd(struct udevice *dev, struct mmc_cmd *cmd,
 			      struct mmc_data *data)
 {
-	struct fsl_esdhc_plat *plat = dev_get_platdata(dev);
+	struct fsl_esdhc_plat *plat = dev_get_plat(dev);
 	struct fsl_esdhc_priv *priv = dev_get_priv(dev);
 
 	return esdhc_send_cmd_common(priv, &plat->mmc, cmd, data);
@@ -1628,7 +1644,7 @@ static int fsl_esdhc_send_cmd(struct udevice *dev, struct mmc_cmd *cmd,
 
 static int fsl_esdhc_set_ios(struct udevice *dev)
 {
-	struct fsl_esdhc_plat *plat = dev_get_platdata(dev);
+	struct fsl_esdhc_plat *plat = dev_get_plat(dev);
 	struct fsl_esdhc_priv *priv = dev_get_priv(dev);
 
 	return esdhc_set_ios_common(priv, &plat->mmc);
@@ -1649,6 +1665,20 @@ static int fsl_esdhc_set_enhanced_strobe(struct udevice *dev)
 }
 #endif
 
+static int fsl_esdhc_wait_dat0(struct udevice *dev, int state,
+				int timeout_us)
+{
+	int ret;
+	u32 tmp;
+	struct fsl_esdhc_priv *priv = dev_get_priv(dev);
+	struct fsl_esdhc *regs = priv->esdhc_regs;
+
+	ret = readx_poll_timeout(esdhc_read32, &regs->prsstat, tmp,
+				!!(tmp & PRSSTAT_DAT0) == !!state,
+				timeout_us);
+	return ret;
+}
+
 static const struct dm_mmc_ops fsl_esdhc_ops = {
 	.get_cd		= fsl_esdhc_get_cd,
 	.send_cmd	= fsl_esdhc_send_cmd,
@@ -1659,6 +1689,7 @@ static const struct dm_mmc_ops fsl_esdhc_ops = {
 #if CONFIG_IS_ENABLED(MMC_HS400_ES_SUPPORT)
 	.set_enhanced_strobe = fsl_esdhc_set_enhanced_strobe,
 #endif
+	.wait_dat0 = fsl_esdhc_wait_dat0,
 };
 #endif
 
@@ -1694,7 +1725,7 @@ static const struct udevice_id fsl_esdhc_ids[] = {
 #if CONFIG_IS_ENABLED(BLK)
 static int fsl_esdhc_bind(struct udevice *dev)
 {
-	struct fsl_esdhc_plat *plat = dev_get_platdata(dev);
+	struct fsl_esdhc_plat *plat = dev_get_plat(dev);
 
 	return mmc_bind(dev, &plat->mmc, &plat->cfg);
 }
@@ -1704,15 +1735,15 @@ U_BOOT_DRIVER(fsl_esdhc) = {
 	.name	= "fsl_esdhc",
 	.id	= UCLASS_MMC,
 	.of_match = fsl_esdhc_ids,
-	.ofdata_to_platdata = fsl_esdhc_ofdata_to_platdata,
+	.of_to_plat = fsl_esdhc_of_to_plat,
 	.ops	= &fsl_esdhc_ops,
 #if CONFIG_IS_ENABLED(BLK)
 	.bind	= fsl_esdhc_bind,
 #endif
 	.probe	= fsl_esdhc_probe,
-	.platdata_auto_alloc_size = sizeof(struct fsl_esdhc_plat),
-	.priv_auto_alloc_size = sizeof(struct fsl_esdhc_priv),
+	.plat_auto	= sizeof(struct fsl_esdhc_plat),
+	.priv_auto	= sizeof(struct fsl_esdhc_priv),
 };
 
-U_BOOT_DRIVER_ALIAS(fsl_esdhc, fsl_imx6q_usdhc)
+DM_DRIVER_ALIAS(fsl_esdhc, fsl_imx6q_usdhc)
 #endif

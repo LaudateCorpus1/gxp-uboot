@@ -51,16 +51,14 @@ static int ast_timer_probe(struct udevice *dev)
 	return 0;
 }
 
-static int ast_timer_get_count(struct udevice *dev, u64 *count)
+static u64 ast_timer_get_count(struct udevice *dev)
 {
 	struct ast_timer_priv *priv = dev_get_priv(dev);
 
-	*count = AST_TMC_RELOAD_VAL - readl(&priv->tmc->status);
-
-	return 0;
+	return AST_TMC_RELOAD_VAL - readl(&priv->tmc->status);
 }
 
-static int ast_timer_ofdata_to_platdata(struct udevice *dev)
+static int ast_timer_of_to_plat(struct udevice *dev)
 {
 	struct ast_timer_priv *priv = dev_get_priv(dev);
 
@@ -88,7 +86,7 @@ U_BOOT_DRIVER(ast_timer) = {
 	.id = UCLASS_TIMER,
 	.of_match = ast_timer_ids,
 	.probe = ast_timer_probe,
-	.priv_auto_alloc_size = sizeof(struct ast_timer_priv),
-	.ofdata_to_platdata = ast_timer_ofdata_to_platdata,
+	.priv_auto	= sizeof(struct ast_timer_priv),
+	.of_to_plat = ast_timer_of_to_plat,
 	.ops = &ast_timer_ops,
 };

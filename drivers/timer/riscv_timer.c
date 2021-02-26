@@ -16,23 +16,39 @@
 #include <timer.h>
 #include <asm/csr.h>
 
-static int riscv_timer_get_count(struct udevice *dev, u64 *count)
+static u64 notrace riscv_timer_get_count(struct udevice *dev)
 {
-	if (IS_ENABLED(CONFIG_64BIT)) {
-		*count = csr_read(CSR_TIME);
-	} else {
-		u32 hi, lo;
+	__maybe_unused u32 hi, lo;
 
-		do {
-			hi = csr_read(CSR_TIMEH);
-			lo = csr_read(CSR_TIME);
-		} while (hi != csr_read(CSR_TIMEH));
+	if (IS_ENABLED(CONFIG_64BIT))
+		return csr_read(CSR_TIME);
 
-		*count = ((u64)hi << 32) | lo;
-	}
+	do {
+		hi = csr_read(CSR_TIMEH);
+		lo = csr_read(CSR_TIME);
+	} while (hi != csr_read(CSR_TIMEH));
 
-	return 0;
+	return ((u64)hi << 32) | lo;
 }
+
+#if CONFIG_IS_ENABLED(RISCV_SMODE) && IS_ENABLED(CONFIG_TIMER_EARLY)
+/**
+ * timer_early_get_rate() - Get the timer rate before driver model
+ */
+unsigned long notrace timer_early_get_rate(void)
+{
+	return RISCV_SMODE_TIMER_FREQ;
+}
+
+/**
+ * timer_early_get_count() - Get the timer count before driver model
+ *
+ */
+u64 notrace timer_early_get_count(void)
+{
+	return riscv_timer_get_count(NULL);
+}
+#endif
 
 static int riscv_timer_probe(struct udevice *dev)
 {

@@ -116,7 +116,8 @@ static int do_tpm2_pcr_extend(struct cmd_tbl *cmdtp, int flag, int argc,
 	if (index >= priv->pcr_count)
 		return -EINVAL;
 
-	rc = tpm2_pcr_extend(dev, index, digest);
+	rc = tpm2_pcr_extend(dev, index, TPM2_ALG_SHA256, digest,
+			     TPM2_DIGEST_LEN);
 
 	unmap_sysmem(digest);
 
@@ -191,10 +192,10 @@ static int do_tpm_get_capability(struct cmd_tbl *cmdtp, int flag, int argc,
 	for (i = 0; i < count; i++) {
 		printf("Property 0x");
 		for (j = 0; j < 4; j++)
-			printf("%02x", data[(i * 8) + j]);
+			printf("%02x", data[(i * 8) + j + sizeof(u32)]);
 		printf(": 0x");
 		for (j = 4; j < 8; j++)
-			printf("%02x", data[(i * 8) + j]);
+			printf("%02x", data[(i * 8) + j + sizeof(u32)]);
 		printf("\n");
 	}
 

@@ -19,6 +19,7 @@ config INTEL_APOLLOLAKE
 	select SMP_AP_WORK
 	select INTEL_GMA_SWSMISCI
 	select ACPI_GNVS_EXTERNAL
+	select TPL_OF_PLATDATA_PARENT
 	imply ENABLE_MRC_CACHE
 	imply AHCI_PCI
 	imply SCSI
@@ -85,6 +86,8 @@ config APL_SPI_FLASH_BOOT
 	bool "Support booting with SPI-flash driver instead memory-mapped SPI"
 	select TPL_SPI_FLASH_SUPPORT
 	select TPL_SPI_SUPPORT
+	select TPL_DM_SPI
+	select TPL_DM_SPI_FLASH
 	help
 	  This enables SPI and SPI flash in TPL. Without the this only
 	  available boot method is to use memory-mapped SPI. Since this is

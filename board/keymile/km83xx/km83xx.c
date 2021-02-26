@@ -22,6 +22,7 @@
 #include <mpc83xx.h>
 #include <i2c.h>
 #include <miiphy.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/mmu.h>
 #include <asm/processor.h>
@@ -185,7 +186,7 @@ int dram_init(void)
 
 int checkboard(void)
 {
-	puts("Board: ABB " CONFIG_SYS_CONFIG_NAME);
+	puts("Board: Hitachi " CONFIG_SYS_CONFIG_NAME);
 
 	if (piggy_present())
 		puts(" with PIGGY.");
@@ -236,12 +237,8 @@ void post_word_store(ulong value)
 
 int arch_memory_test_prepare(u32 *vstart, u32 *size, phys_addr_t *phys_offset)
 {
-	/*
-	 * These match CONFIG_SYS_MEMTEST_START and
-	 * (CONFIG_SYS_MEMTEST_END - CONFIG_SYS_MEMTEST_START)
-	 */
-	*vstart = 0x00100000;
-	*size = 0xe00000;
+	*vstart = CONFIG_SYS_MEMTEST_START;
+	*size = CONFIG_SYS_MEMTEST_END - CONFIG_SYS_MEMTEST_START;
 	debug("arch_memory_test_prepare 0x%08X 0x%08X\n", *vstart, *size);
 
 	return 0;

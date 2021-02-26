@@ -11,6 +11,7 @@
 #include <efi_rng.h>
 #include <log.h>
 #include <rng.h>
+#include <asm/global_data.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -166,13 +167,13 @@ efi_status_t efi_rng_register(void)
 
 	ret = platform_get_rng_device(&dev);
 	if (ret != EFI_SUCCESS) {
-		log_warning("Missing RNG device for EFI_RNG_PROTOCOL");
+		log_warning("Missing RNG device for EFI_RNG_PROTOCOL\n");
 		return EFI_SUCCESS;
 	}
 	ret = efi_add_protocol(efi_root, &efi_guid_rng_protocol,
 			       (void *)&efi_rng_protocol);
 	if (ret != EFI_SUCCESS)
-		log_err("Cannot install EFI_RNG_PROTOCOL");
+		log_err("Cannot install EFI_RNG_PROTOCOL\n");
 
 	return ret;
 }

@@ -25,7 +25,7 @@ struct max98357a_priv {
 	struct gpio_desc sdmode_gpio;
 };
 
-static int max98357a_ofdata_to_platdata(struct udevice *dev)
+static int max98357a_of_to_plat(struct udevice *dev)
 {
 	struct max98357a_priv *priv = dev_get_priv(dev);
 	int ret;
@@ -69,7 +69,7 @@ static int max98357a_acpi_fill_ssdt(const struct udevice *dev,
 	acpigen_write_name(ctx, "_CRS");
 	acpigen_write_resourcetemplate_header(ctx);
 	ret = acpi_device_write_gpio_desc(ctx, &priv->sdmode_gpio);
-	if (ret)
+	if (ret < 0)
 		return log_msg_ret("gpio", ret);
 	acpigen_write_resourcetemplate_footer(ctx);
 
@@ -155,7 +155,7 @@ U_BOOT_DRIVER(max98357a) = {
 	.name		= "max98357a",
 	.id		= UCLASS_AUDIO_CODEC,
 	.of_match	= max98357a_ids,
-	.ofdata_to_platdata	= max98357a_ofdata_to_platdata,
+	.of_to_plat	= max98357a_of_to_plat,
 	.ops		= &max98357a_ops,
 	ACPI_OPS_PTR(&max98357a_acpi_ops)
 };

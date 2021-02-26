@@ -10,6 +10,7 @@
 #include <init.h>
 #include <log.h>
 #include <asm/arch/imx-regs.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/sys_proto.h>
@@ -209,6 +210,9 @@ int dram_init(void)
 		gd->ram_size = sdram_size - rom_pointer[1];
 	else
 		gd->ram_size = sdram_size;
+
+	/* also update the SDRAM size in the mem_map used externally */
+	imx8m_mem_map[5].size = sdram_size;
 
 #ifdef PHYS_SDRAM_2_SIZE
 	gd->ram_size += PHYS_SDRAM_2_SIZE;

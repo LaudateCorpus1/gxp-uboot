@@ -13,6 +13,7 @@
 #include <tables_csum.h>
 #include <version.h>
 #include <acpi/acpi_table.h>
+#include <asm/global_data.h>
 #include <dm/acpi.h>
 
 int acpi_create_dmar(struct acpi_dmar *dmar, enum dmar_flags flags)
@@ -183,8 +184,8 @@ int acpi_add_table(struct acpi_ctx *ctx, void *table)
 	return 0;
 }
 
-static void acpi_write_rsdp(struct acpi_rsdp *rsdp, struct acpi_rsdt *rsdt,
-			    struct acpi_xsdt *xsdt)
+void acpi_write_rsdp(struct acpi_rsdp *rsdp, struct acpi_rsdt *rsdt,
+		     struct acpi_xsdt *xsdt)
 {
 	memset(rsdp, 0, sizeof(struct acpi_rsdp));
 

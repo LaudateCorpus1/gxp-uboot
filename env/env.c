@@ -8,6 +8,7 @@
 #include <env.h>
 #include <env_internal.h>
 #include <log.h>
+#include <asm/global_data.h>
 #include <linux/bitops.h>
 #include <linux/bug.h>
 
@@ -328,6 +329,8 @@ int env_init(void)
 
 	for (prio = 0; (drv = env_driver_lookup(ENVOP_INIT, prio)); prio++) {
 		if (!drv->init || !(ret = drv->init()))
+			env_set_inited(drv->location);
+		if (ret == -ENOENT)
 			env_set_inited(drv->location);
 
 		debug("%s: Environment %s init done (ret=%d)\n", __func__,

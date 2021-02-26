@@ -251,7 +251,8 @@ static int ks_rcv(struct ks_net *ks, uchar *data)
 	}
 
 	ks_wrreg16(ks, KS_RXQCR, RXQCR_CMD_CNTL | RXQCR_RRXEF);
-	printf(DRIVERNAME ": bad packet\n");
+	printf(DRIVERNAME ": bad packet (sts=0x%04x len=0x%04x)\n", sts, len);
+	ks->rxfc = 0;
 	return 0;
 }
 
@@ -615,11 +616,39 @@ static int ks8851_recv(struct udevice *dev, int flags, uchar **packetp)
 static int ks8851_write_hwaddr(struct udevice *dev)
 {
 	struct ks_net *ks = dev_get_priv(dev);
-	struct eth_pdata *pdata = dev_get_platdata(dev);
+	struct eth_pdata *pdata = dev_get_plat(dev);
 
 	ks8851_mll_write_hwaddr_common(ks, pdata->enetaddr);
 
 	return 0;
+}
+
+static int ks8851_read_rom_hwaddr(struct udevice *dev)
+{
+	struct ks_net *ks = dev_get_priv(dev);
+	struct eth_pdata *pdata = dev_get_plat(dev);
+	u16 addrl, addrm, addrh;
+
+	/* No EEPROM means no valid MAC address. */
+	if (!(ks_rdreg16(ks, KS_CCR) & CCR_EEPROM))
+		return -EINVAL;
+
+	/*
+	 * If the EEPROM contains valid MAC address, it is loaded into
+	 * the NIC on power on. Read the MAC out of the NIC registers.
+	 */
+	addrl = ks_rdreg16(ks, KS_MARL);
+	addrm = ks_rdreg16(ks, KS_MARM);
+	addrh = ks_rdreg16(ks, KS_MARH);
+
+	pdata->enetaddr[0] = (addrh >> 8) & 0xff;
+	pdata->enetaddr[1] = addrh & 0xff;
+	pdata->enetaddr[2] = (addrm >> 8) & 0xff;
+	pdata->enetaddr[3] = addrm & 0xff;
+	pdata->enetaddr[4] = (addrl >> 8) & 0xff;
+	pdata->enetaddr[5] = addrl & 0xff;
+
+	return !is_valid_ethaddr(pdata->enetaddr);
 }
 
 static int ks8851_bind(struct udevice *dev)
@@ -637,10 +666,10 @@ static int ks8851_probe(struct udevice *dev)
 	return 0;
 }
 
-static int ks8851_ofdata_to_platdata(struct udevice *dev)
+static int ks8851_of_to_plat(struct udevice *dev)
 {
 	struct ks_net *ks = dev_get_priv(dev);
-	struct eth_pdata *pdata = dev_get_platdata(dev);
+	struct eth_pdata *pdata = dev_get_plat(dev);
 
 	pdata->iobase = dev_read_addr(dev);
 	ks->iobase = pdata->iobase;
@@ -654,6 +683,7 @@ static const struct eth_ops ks8851_ops = {
 	.send		= ks8851_send,
 	.recv		= ks8851_recv,
 	.write_hwaddr	= ks8851_write_hwaddr,
+	.read_rom_hwaddr = ks8851_read_rom_hwaddr,
 };
 
 static const struct udevice_id ks8851_ids[] = {
@@ -666,11 +696,11 @@ U_BOOT_DRIVER(ks8851) = {
 	.id		= UCLASS_ETH,
 	.of_match	= ks8851_ids,
 	.bind		= ks8851_bind,
-	.ofdata_to_platdata = ks8851_ofdata_to_platdata,
+	.of_to_plat = ks8851_of_to_plat,
 	.probe		= ks8851_probe,
 	.ops		= &ks8851_ops,
-	.priv_auto_alloc_size = sizeof(struct ks_net),
-	.platdata_auto_alloc_size = sizeof(struct eth_pdata),
+	.priv_auto	= sizeof(struct ks_net),
+	.plat_auto	= sizeof(struct eth_pdata),
 	.flags		= DM_FLAG_ALLOC_PRIV_DMA,
 };
 #endif

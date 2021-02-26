@@ -12,6 +12,7 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>
+#include <asm/global_data.h>
 #include <asm/mach-imx/spi.h>
 #include <env.h>
 #include <linux/errno.h>
@@ -572,12 +573,6 @@ int board_late_init(void)
 		env_set("board_rev", "MX6DL");
 #endif
 
-	return 0;
-}
-
-int checkboard(void)
-{
-	puts("Board: MX6-SabreSD\n");
 	return 0;
 }
 

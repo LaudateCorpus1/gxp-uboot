@@ -55,6 +55,15 @@ config SYS_PROMPT
 	  This string is displayed in the command line to the left of the
 	  cursor.
 
+config SYS_PROMPT_HUSH_PS2
+	string "Hush shell secondary prompt"
+	depends on HUSH_PARSER
+	default "> "
+	help
+	  This defines the secondary prompt string, which is
+	  printed when the command interpreter needs more input
+	  to complete a command. Usually "> ".
+
 config SYS_XTRACE
 	string "Command execution tracer"
 	depends on CMDLINE
@@ -75,7 +84,8 @@ menu "Info commands"
 
 config CMD_ACPI
 	bool "acpi"
-	default y if ACPIGEN
+	depends on ACPIGEN
+	default y
 	help
 	  List and dump ACPI tables. ACPI (Advanced Configuration and Power
 	  Interface) is used mostly on x86 for providing information to the
@@ -113,6 +123,7 @@ config CMD_CONSOLE
 
 config CMD_CPU
 	bool "cpu"
+	depends on CPU
 	help
 	  Print information about available CPUs. This normally shows the
 	  number of CPUs, type (e.g. manufacturer, architecture, product or
@@ -918,6 +929,12 @@ config CMD_GPIO
 	help
 	  GPIO support.
 
+config CMD_PWM
+	bool "pwm"
+	depends on DM_PWM
+	help
+	  Control PWM channels, this allows invert/config/enable/disable PWM channels.
+
 config CMD_GPT
 	bool "GPT (GUID Partition Table) command"
 	select EFI_PARTITION
@@ -1025,6 +1042,22 @@ config CMD_LSBLK
 	  Print list of available block device drivers, and for each, the list
 	  of known block devices.
 
+config CMD_MBR
+	bool "MBR (Master Boot Record) command"
+	select DOS_PARTITION
+	select HAVE_BLOCK_DEVICE
+	help
+	  Enable the 'mbr' command to ready and write MBR (Master Boot Record)
+	  style partition tables.
+
+config CMD_MISC
+	bool "misc"
+	depends on MISC
+	help
+	  Enable the command "misc" for accessing miscellaneous devices with
+	  a MISC uclass driver. The command provides listing all MISC devices
+	  as well as read and write functionalities via their drivers.
+
 config CMD_MMC
 	bool "mmc"
 	help
@@ -1066,12 +1099,26 @@ config CMD_CLONE
 	  initial flashing by external block device without network
 	  or usb support.
 
+config CMD_OPTEE_RPMB
+	bool "Enable read/write support on RPMB via OPTEE"
+	depends on SUPPORT_EMMC_RPMB && OPTEE
+	help
+	  Enable the commands for reading, writing persistent named values
+	  in the Replay Protection Memory Block partition in eMMC by
+	  using Persistent Objects in OPTEE
+
 config CMD_MTD
 	bool "mtd"
 	depends on MTD
 	select MTD_PARTITIONS
 	help
 	  MTD commands support.
+
+config CMD_MUX
+	bool "mux"
+	depends on MULTIPLEXER
+	help
+	 List, select, and deselect mux controllers on the fly.
 
 config CMD_NAND
 	bool "nand"
@@ -1141,6 +1188,7 @@ config CMD_PCI
 
 config CMD_PINMUX
 	bool "pinmux - show pins muxing"
+	depends on PINCTRL
 	default y if PINCTRL
 	help
 	  Parse all available pin-controllers and show pins muxing. This
@@ -1660,7 +1708,7 @@ config CMD_EFIDEBUG
 
 config CMD_EXCEPTION
 	bool "exception - raise exception"
-	depends on ARM || RISCV || X86
+	depends on ARM || RISCV || SANDBOX || X86
 	help
 	  Enable the 'exception' command which allows to raise an exception.
 
@@ -1708,8 +1756,7 @@ config CMD_RNG
 	help
 	  Print bytes from the hardware random number generator.
 
-# TODO: rename to CMD_SLEEP
-config CMD_MISC
+config CMD_SLEEP
 	bool "sleep"
 	default y
 	help
@@ -1887,7 +1934,7 @@ config CMD_REGULATOR
 
 	  The '-f' (force) option can be used for set the value which exceeds
 	  the limits, which are found in device-tree and are kept in regulator's
-	  uclass platdata structure.
+	  uclass plat structure.
 
 endmenu
 
@@ -2218,6 +2265,7 @@ config CMD_KGDB
 config CMD_LOG
 	bool "log - Generation, control and access to logging"
 	select LOG
+	select GETOPT
 	help
 	  This provides access to logging features. It allows the output of
 	  log data to be controlled to a limited extent (setting up the default

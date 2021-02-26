@@ -3,11 +3,33 @@
 Develop U-Boot
 ==============
 
+Implementation
+--------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   coccinelle
-   crash_dumps
+   commands
    global_data
    logging
+   menus
+   version
+
+Debugging
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   crash_dumps
+   trace
+
+Testing
+-------
+
+.. toctree::
+   :maxdepth: 1
+
+   coccinelle
+   testing
+   py_testing

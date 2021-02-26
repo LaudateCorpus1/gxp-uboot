@@ -9,6 +9,7 @@
 #include <blk.h>
 #include <ide.h>
 #include <uuid.h>
+#include <linker_lists.h>
 #include <linux/list.h>
 
 struct block_drvr {
@@ -465,16 +466,49 @@ int get_disk_guid(struct blk_desc *dev_desc, char *guid);
 int is_valid_dos_buf(void *buf);
 
 /**
- * write_mbr_partition() - write DOS MBR
+ * write_mbr_sector() - write DOS MBR
  *
  * @param dev_desc - block device descriptor
  * @param buf - buffer which contains the MBR
  *
  * @return - '0' on success, otherwise error
  */
-int write_mbr_partition(struct blk_desc *dev_desc, void *buf);
+int write_mbr_sector(struct blk_desc *dev_desc, void *buf);
+
+int write_mbr_partitions(struct blk_desc *dev,
+		struct disk_partition *p, int count, unsigned int disksig);
+int layout_mbr_partitions(struct disk_partition *p, int count,
+			  lbaint_t total_sectors);
 
 #endif
 
+#ifdef CONFIG_PARTITIONS
+/**
+ * part_driver_get_count() - get partition driver count
+ *
+ * @return - number of partition drivers
+ */
+static inline int part_driver_get_count(void)
+{
+	return ll_entry_count(struct part_driver, part_driver);
+}
+
+/**
+ * part_driver_get_first() - get first partition driver
+ *
+ * @return - pointer to first partition driver on success, otherwise NULL
+ */
+static inline struct part_driver *part_driver_get_first(void)
+{
+	return ll_entry_start(struct part_driver, part_driver);
+}
+
+#else
+static inline int part_driver_get_count(void)
+{ return 0; }
+
+static inline struct part_driver *part_driver_get_first(void)
+{ return NULL; }
+#endif /* CONFIG_PARTITIONS */
 
 #endif /* _PART_H */

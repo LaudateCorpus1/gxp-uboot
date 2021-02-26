@@ -16,6 +16,7 @@ enum uclass_id {
 	UCLASS_DEMO,
 	UCLASS_TEST,
 	UCLASS_TEST_FDT,
+	UCLASS_TEST_FDT_MANUAL,
 	UCLASS_TEST_BUS,
 	UCLASS_TEST_PROBE,
 	UCLASS_TEST_DUMMY,
@@ -36,7 +37,6 @@ enum uclass_id {
 	UCLASS_AUDIO_CODEC,	/* Audio codec with control and data path */
 	UCLASS_AXI,		/* AXI bus */
 	UCLASS_BLK,		/* Block device */
-	UCLASS_BOARD,		/* Device information from hardware */
 	UCLASS_BOOTCOUNT,       /* Bootcount backing store */
 	UCLASS_BUTTON,		/* Button */
 	UCLASS_CACHE,		/* Cache controller */
@@ -46,6 +46,7 @@ enum uclass_id {
 	UCLASS_DISPLAY,		/* Display (e.g. DisplayPort, HDMI) */
 	UCLASS_DSI_HOST,	/* Display Serial Interface host */
 	UCLASS_DMA,		/* Direct Memory Access */
+	UCLASS_DSA,		/* Distributed (Ethernet) Switch Architecture */
 	UCLASS_EFI,		/* EFI managed devices */
 	UCLASS_ETH,		/* Ethernet device */
 	UCLASS_ETH_PHY,		/* Ethernet PHY device */
@@ -71,6 +72,7 @@ enum uclass_id {
 	UCLASS_MMC,		/* SD / MMC card or chip */
 	UCLASS_MOD_EXP,		/* RSA Mod Exp device */
 	UCLASS_MTD,		/* Memory Technology Device (MTD) device */
+	UCLASS_MUX,		/* Multiplexer device */
 	UCLASS_NOP,		/* No-op devices */
 	UCLASS_NORTHBRIDGE,	/* Intel Northbridge / SDRAM controller */
 	UCLASS_NVME,		/* NVM Express device */
@@ -106,6 +108,7 @@ enum uclass_id {
 	UCLASS_SPI_GENERIC,	/* Generic SPI flash target */
 	UCLASS_SPMI,		/* System Power Management Interface bus */
 	UCLASS_SYSCON,		/* System configuration device */
+	UCLASS_SYSINFO,		/* Device information from hardware */
 	UCLASS_SYSRESET,	/* System reset device */
 	UCLASS_TEE,		/* Trusted Execution Environment device */
 	UCLASS_THERMAL,		/* Thermal sensor */

@@ -10,7 +10,13 @@
 #include <efi_variable.h>
 #include <u-boot/crc.h>
 
-struct efi_var_file __efi_runtime_data *efi_var_buf;
+/*
+ * The variables efi_var_file and efi_var_entry must be static to avoid
+ * referencing them via the global offset table (section .got). The GOT
+ * is neither mapped as EfiRuntimeServicesData nor do we support its
+ * relocation during SetVirtualAddressMap().
+ */
+static struct efi_var_file __efi_runtime_data *efi_var_buf;
 static struct efi_var_entry __efi_runtime_data *efi_current_var;
 
 /**
@@ -304,8 +310,8 @@ efi_get_variable_mem(u16 *variable_name, const efi_guid_t *vendor, u32 *attribut
 }
 
 efi_status_t __efi_runtime
-efi_get_next_variable_name_mem(efi_uintn_t *variable_name_size, u16 *variable_name,
-			       efi_guid_t *vendor)
+efi_get_next_variable_name_mem(efi_uintn_t *variable_name_size,
+			       u16 *variable_name, efi_guid_t *vendor)
 {
 	struct efi_var_entry *var;
 	efi_uintn_t old_size;
@@ -314,7 +320,12 @@ efi_get_next_variable_name_mem(efi_uintn_t *variable_name_size, u16 *variable_na
 	if (!variable_name_size || !variable_name || !vendor)
 		return EFI_INVALID_PARAMETER;
 
-	efi_var_mem_find(vendor, variable_name, &var);
+	if (u16_strnlen(variable_name, *variable_name_size) ==
+	    *variable_name_size)
+		return EFI_INVALID_PARAMETER;
+
+	if (!efi_var_mem_find(vendor, variable_name, &var) && *variable_name)
+		return EFI_INVALID_PARAMETER;
 
 	if (!var)
 		return EFI_NOT_FOUND;
@@ -333,4 +344,9 @@ efi_get_next_variable_name_mem(efi_uintn_t *variable_name_size, u16 *variable_na
 	efi_memcpy_runtime(vendor, &var->guid, sizeof(efi_guid_t));
 
 	return EFI_SUCCESS;
+}
+
+void efi_var_buf_update(struct efi_var_file *var_buf)
+{
+	memcpy(efi_var_buf, var_buf, EFI_VAR_BUF_SIZE);
 }

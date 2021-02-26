@@ -19,9 +19,10 @@ class Entry_files(Entry_section):
 
     Properties / Entry arguments:
         - pattern: Filename pattern to match the files to include
-        - compress: Compression algorithm to use:
+        - files-compress: Compression algorithm to use:
             none: No compression
             lz4: Use lz4 compression (via 'lz4' command-line utility)
+        - files-align: Align each file to the given alignment
 
     This entry reads a number of files and places each in a separate sub-entry
     within this entry. To access these you need to enable device-tree updates
@@ -36,7 +37,9 @@ class Entry_files(Entry_section):
         self._pattern = fdt_util.GetString(self._node, 'pattern')
         if not self._pattern:
             self.Raise("Missing 'pattern' property")
-        self._compress = fdt_util.GetString(self._node, 'compress', 'none')
+        self._files_compress = fdt_util.GetString(self._node, 'files-compress',
+                                                  'none')
+        self._files_align = fdt_util.GetInt(self._node, 'files-align');
         self._require_matches = fdt_util.GetBool(self._node,
                                                 'require-matches')
 
@@ -53,7 +56,9 @@ class Entry_files(Entry_section):
                 subnode = state.AddSubnode(self._node, name)
             state.AddString(subnode, 'type', 'blob')
             state.AddString(subnode, 'filename', fname)
-            state.AddString(subnode, 'compress', self._compress)
+            state.AddString(subnode, 'compress', self._files_compress)
+            if self._files_align:
+                state.AddInt(subnode, 'align', self._files_align)
 
         # Read entries again, now that we have some
         self._ReadEntries()

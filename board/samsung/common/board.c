@@ -16,6 +16,7 @@
 #include <spi.h>
 #include <tmu.h>
 #include <netdev.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/gpio.h>
 #include <asm/arch/board.h>
@@ -304,7 +305,6 @@ int board_late_init(void)
 	int mmcbootdev = get_boot_mmc_dev();
 	char mmcbootdev_str[16];
 
-	stdio_print_current_devices();
 	ret = uclass_first_device_err(UCLASS_CROS_EC, &dev);
 	if (ret && ret != -ENODEV) {
 		/* Force console on */

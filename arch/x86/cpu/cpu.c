@@ -18,6 +18,8 @@
  * src/arch/x86/lib/cpu.c
  */
 
+#define LOG_CATEGORY	UCLASS_CPU
+
 #include <common.h>
 #include <bootstage.h>
 #include <command.h>
@@ -35,6 +37,7 @@
 #include <asm/control_regs.h>
 #include <asm/coreboot_tables.h>
 #include <asm/cpu.h>
+#include <asm/global_data.h>
 #include <asm/lapic.h>
 #include <asm/microcode.h>
 #include <asm/mp.h>
@@ -200,6 +203,7 @@ __weak void board_final_cleanup(void)
 int last_stage_init(void)
 {
 	struct acpi_fadt __maybe_unused *fadt;
+	int ret;
 
 	board_final_init();
 
@@ -210,7 +214,11 @@ int last_stage_init(void)
 			acpi_resume(fadt);
 	}
 
-	write_tables();
+	ret = write_tables();
+	if (ret) {
+		log_err("Failed to write tables\n");
+		return log_msg_ret("table", ret);
+	}
 
 	if (IS_ENABLED(CONFIG_GENERATE_ACPI_TABLE)) {
 		fadt = acpi_find_fadt();

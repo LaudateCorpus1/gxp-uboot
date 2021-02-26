@@ -178,6 +178,7 @@ static inline bool mmc_is_tuning_cmd(uint cmdidx)
 #define MMC_STATUS_ERROR	(1 << 19)
 
 #define MMC_STATE_PRG		(7 << 9)
+#define MMC_STATE_TRANS		(4 << 9)
 
 #define MMC_VDD_165_195		0x00000080	/* VDD voltage 1.65 - 1.95 */
 #define MMC_VDD_20_21		0x00000100	/* VDD voltage 2.0 ~ 2.1 */
@@ -359,6 +360,19 @@ enum mmc_voltage {
  */
 #define MMC_NUM_BOOT_PARTITION	2
 #define MMC_PART_RPMB           3       /* RPMB partition number */
+
+/* timing specification used */
+#define MMC_TIMING_LEGACY	0
+#define MMC_TIMING_MMC_HS	1
+#define MMC_TIMING_SD_HS	2
+#define MMC_TIMING_UHS_SDR12	3
+#define MMC_TIMING_UHS_SDR25	4
+#define MMC_TIMING_UHS_SDR50	5
+#define MMC_TIMING_UHS_SDR104	6
+#define MMC_TIMING_UHS_DDR50	7
+#define MMC_TIMING_MMC_DDR52	8
+#define MMC_TIMING_MMC_HS200	9
+#define MMC_TIMING_MMC_HS400	10
 
 /* Driver model support */
 
@@ -578,6 +592,9 @@ struct mmc_config {
 	uint f_max;
 	uint b_max;
 	unsigned char part_type;
+#ifdef CONFIG_MMC_PWRSEQ
+	struct udevice *pwr_dev;
+#endif
 };
 
 struct sd_ssr {
@@ -723,6 +740,12 @@ struct mmc {
 	u8 hs400_tuning;
 };
 
+#if CONFIG_IS_ENABLED(DM_MMC)
+#define mmc_to_dev(_mmc)	_mmc->dev
+#else
+#define mmc_to_dev(_mmc)	NULL
+#endif
+
 struct mmc_hwpart_conf {
 	struct {
 		uint enh_start;	/* in 512-byte sectors */
@@ -787,6 +810,17 @@ int mmc_deinit(struct mmc *mmc);
  * @return 0 if OK, -ve on error
  */
 int mmc_of_parse(struct udevice *dev, struct mmc_config *cfg);
+
+#ifdef CONFIG_MMC_PWRSEQ
+/**
+ * mmc_pwrseq_get_power() - get a power device from device tree
+ *
+ * @dev:	MMC device
+ * @cfg:	MMC configuration
+ * @return 0 if OK, -ve on error
+ */
+int mmc_pwrseq_get_power(struct udevice *dev, struct mmc_config *cfg);
+#endif
 
 int mmc_read(struct mmc *mmc, u64 src, uchar *dst, int size);
 

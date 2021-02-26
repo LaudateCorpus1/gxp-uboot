@@ -8,6 +8,7 @@
 #include <dm.h>
 #include <dfu.h>
 #include <env.h>
+#include <log.h>
 #include <memalign.h>
 #include <misc.h>
 #include <mtd.h>
@@ -163,7 +164,7 @@ static int dfu_otp_read(u64 offset, u8 *buffer, long *size)
 	int ret;
 
 	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_GET_DRIVER(stm32mp_bsec),
+					  DM_DRIVER_GET(stm32mp_bsec),
 					  &dev);
 	if (ret)
 		return ret;
@@ -184,7 +185,7 @@ static int dfu_pmic_read(u64 offset, u8 *buffer, long *size)
 	struct udevice *dev;
 
 	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_GET_DRIVER(stpmic1_nvm),
+					  DM_DRIVER_GET(stpmic1_nvm),
 					  &dev);
 	if (ret)
 		return ret;
@@ -199,7 +200,7 @@ static int dfu_pmic_read(u64 offset, u8 *buffer, long *size)
 		ret = 0;
 	}
 #else
-	pr_err("PMIC update not supported");
+	log_err("PMIC update not supported");
 	ret = -EOPNOTSUPP;
 #endif
 

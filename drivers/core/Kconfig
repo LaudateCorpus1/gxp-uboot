@@ -40,10 +40,24 @@ config DM_WARN
 	depends on DM
 	default y
 	help
+	  Enable this to see warnings related to driver model.
+
+	  Warnings may help with debugging, such as when expected devices do
+	  not bind correctly. If the option is disabled, dm_warn() is compiled
+	  out - it will do nothing when called.
+
+config SPL_DM_WARN
+	bool "Enable warnings in driver model wuth SPL"
+	depends on SPL_DM
+	help
+	  Enable this to see warnings related to driver model in SPL
+
 	  The dm_warn() function can use up quite a bit of space for its
 	  strings. By default this is disabled for SPL builds to save space.
-	  This will cause dm_warn() to be compiled out - it will do nothing
-	  when called.
+
+	  Warnings may help with debugging, such as when expected devices do
+	  not bind correctly. If the option is disabled, dm_warn() is compiled
+	  out - it will do nothing when called.
 
 config DM_DEBUG
 	bool "Enable debug messages in driver model core"
@@ -98,6 +112,32 @@ config SPL_DM_SEQ_ALIAS
 	  Most boards will have a '/aliases' node containing the path to
 	  numbered devices (e.g. serial0 = &serial0). This feature can be
 	  disabled if it is not required, to save code space in SPL.
+
+config SPL_DM_INLINE_OFNODE
+	bool "Inline some ofnode functions which are seldom used in SPL"
+	depends on SPL_DM
+	default y
+	help
+	  This applies to several ofnode functions (see ofnode.h) which are
+	  seldom used. Inlining them can help reduce code size.
+
+config TPL_DM_INLINE_OFNODE
+	bool "Inline some ofnode functions which are seldom used in TPL"
+	depends on TPL_DM
+	default y
+	help
+	  This applies to several ofnode functions (see ofnode.h) which are
+	  seldom used. Inlining them can help reduce code size.
+
+config DM_DMA
+	bool "Support per-device DMA constraints"
+	depends on DM
+	default n
+	help
+	  Enable this to extract per-device DMA constraints, only supported on
+	  device-tree systems for now. This is needed in order translate
+	  addresses on systems where different buses have different views of
+	  the physical address space.
 
 config REGMAP
 	bool "Support register maps"
@@ -216,6 +256,18 @@ config OF_TRANSLATE
 	  If this option is not enabled, simple_bus_translate() will be
 	  used for the address translation. This function is faster and
 	  smaller in size than fdt_translate_address().
+
+config OF_TRANSLATE_ZERO_SIZE_CELLS
+	bool "Enable translation for zero size cells"
+	depends on OF_TRANSLATE
+	default n
+	help
+	  The routine used to translate an FDT address into a physical CPU
+	  address was developed by IBM. It considers that crossing any level
+	  with #size-cells = <0> makes translation impossible, even if it is
+	  not the way it was specified.
+	  Enabling this option makes translation possible even in the case
+	  of crossing levels with #size-cells = <0>.
 
 config SPL_OF_TRANSLATE
 	bool "Translate addresses using fdt_translate_address in SPL"

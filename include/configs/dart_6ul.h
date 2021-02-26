@@ -22,16 +22,9 @@
 
 #ifdef CONFIG_CMD_NET
 #define CONFIG_FEC_ENET_DEV		0
-
 #if (CONFIG_FEC_ENET_DEV == 0)
-#define IMX_FEC_BASE			ENET_BASE_ADDR
-#define CONFIG_FEC_MXC_PHYADDR		0x1
-#define CONFIG_FEC_XCV_TYPE		RMII
 #define CONFIG_ETHPRIME			"eth0"
 #elif (CONFIG_FEC_ENET_DEV == 1)
-#define IMX_FEC_BASE			ENET2_BASE_ADDR
-#define CONFIG_FEC_MXC_PHYADDR		0x3
-#define CONFIG_FEC_XCV_TYPE		RMII
 #define CONFIG_ETHPRIME			"eth1"
 #endif
 #endif
@@ -83,8 +76,6 @@
 #define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
 #define CONFIG_MXC_USB_FLAGS		0
 #define CONFIG_USB_MAX_CONTROLLER_COUNT	2
-
-#define CONFIG_IMX_THERMAL
 
 #define ENV_MMC \
 	"mmcdev=" __stringify(MMC_ROOTFS_DEV) "\0" \

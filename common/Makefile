@@ -53,8 +53,7 @@ obj-$(CONFIG_LCD_ROTATION) += lcd_console_rotation.o
 obj-$(CONFIG_LCD_DT_SIMPLEFB) += lcd_simplefb.o
 obj-$(CONFIG_LYNXKDI) += lynxkdi.o
 obj-$(CONFIG_MENU) += menu.o
-obj-$(CONFIG_UPDATE_TFTP) += update.o
-obj-$(CONFIG_DFU_TFTP) += update.o
+obj-$(CONFIG_UPDATE_COMMON) += update.o
 obj-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
 obj-$(CONFIG_CMDLINE) += cli_readline.o cli_simple.o
 
@@ -69,7 +68,6 @@ obj-$(CONFIG_DFU_OVER_USB) += dfu.o
 endif
 obj-$(CONFIG_SPL_HASH_SUPPORT) += hash.o
 obj-$(CONFIG_TPL_HASH_SUPPORT) += hash.o
-obj-$(CONFIG_SPL_YMODEM_SUPPORT) += xyzModem.o
 obj-$(CONFIG_SPL_LOAD_FIT) += common_fit.o
 obj-$(CONFIG_SPL_NET_SUPPORT) += miiphyutil.o
 obj-$(CONFIG_$(SPL_TPL_)OF_LIBFDT) += fdt_support.o

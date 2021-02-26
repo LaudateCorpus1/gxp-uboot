@@ -9,6 +9,8 @@
 #include <errno.h>
 #include <image.h>
 
+struct udevice;
+
 /**
  * struct key_prop - holder for a public key properties
  *
@@ -66,7 +68,7 @@ int rsa_mod_exp(struct udevice *dev, const uint8_t *sig, uint32_t sig_len,
 		struct key_prop *node, uint8_t *out);
 
 #if defined(CONFIG_CMD_ZYNQ_RSA)
-int zynq_pow_mod(u32 *keyptr, u32 *inout);
+int zynq_pow_mod(uint32_t *keyptr, uint32_t *inout);
 #endif
 
 /**

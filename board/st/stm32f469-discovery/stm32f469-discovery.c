@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (C) STMicroelectronics SA 2017
- * Author(s): Patrice CHOTARD, <patrice.chotard@st.com> for STMicroelectronics.
+ * Author(s): Patrice CHOTARD, <patrice.chotard@foss.st.com> for STMicroelectronics.
  */
 
 #include <common.h>
@@ -9,6 +9,7 @@
 #include <env.h>
 #include <init.h>
 #include <log.h>
+#include <asm/global_data.h>
 
 #include <asm/io.h>
 #include <asm/arch/stm32.h>

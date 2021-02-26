@@ -122,6 +122,9 @@ htmldocs:
   tags: [ 'all' ]
   stage: testsuites
   script:
+    - virtualenv -p /usr/bin/python3 /tmp/venvhtml
+    - . /tmp/venvhtml/bin/activate
+    - pip install -r doc/sphinx/requirements.txt
     - make htmldocs
 
 # some statistics about the code base
@@ -161,7 +164,7 @@ Run binman, buildman, dtoc, Kconfig and patman testsuites:
       export USER=gitlab;
       virtualenv -p /usr/bin/python3 /tmp/venv;
       . /tmp/venv/bin/activate;
-      pip install pyelftools pytest;
+      pip install pyelftools pytest pygit2;
       export UBOOT_TRAVIS_BUILD_DIR=/tmp/sandbox_spl;
       export PYTHONPATH="${UBOOT_TRAVIS_BUILD_DIR}/scripts/dtc/pylibfdt";
       export PATH="${UBOOT_TRAVIS_BUILD_DIR}/scripts/dtc:${PATH}";
@@ -198,7 +201,7 @@ sandbox_spl test.py:
   tags: [ 'all' ]
   variables:
     TEST_PY_BD: "sandbox_spl"
-    TEST_PY_TEST_SPEC: "test_ofplatdata or test_handoff"
+    TEST_PY_TEST_SPEC: "test_ofplatdata or test_handoff or test_spl"
   <<: *buildman_and_testpy_dfn
 
 evb-ast2500 test.py:

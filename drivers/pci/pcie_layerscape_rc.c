@@ -7,6 +7,7 @@
 #include <common.h>
 #include <asm/arch/fsl_serdes.h>
 #include <pci.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <errno.h>
 #include <malloc.h>
@@ -130,13 +131,13 @@ static int ls_pcie_addr_valid(struct ls_pcie_rc *pcie_rc, pci_dev_t bdf)
 	if (!pcie_rc->enabled)
 		return -ENXIO;
 
-	if (PCI_BUS(bdf) < bus->seq)
+	if (PCI_BUS(bdf) < dev_seq(bus))
 		return -EINVAL;
 
-	if ((PCI_BUS(bdf) > bus->seq) && (!ls_pcie_link_up(pcie)))
+	if ((PCI_BUS(bdf) > dev_seq(bus)) && (!ls_pcie_link_up(pcie)))
 		return -EINVAL;
 
-	if (PCI_BUS(bdf) <= (bus->seq + 1) && (PCI_DEV(bdf) > 0))
+	if (PCI_BUS(bdf) <= (dev_seq(bus) + 1) && (PCI_DEV(bdf) > 0))
 		return -EINVAL;
 
 	return 0;
@@ -152,16 +153,16 @@ int ls_pcie_conf_address(const struct udevice *bus, pci_dev_t bdf,
 	if (ls_pcie_addr_valid(pcie_rc, bdf))
 		return -EINVAL;
 
-	if (PCI_BUS(bdf) == bus->seq) {
+	if (PCI_BUS(bdf) == dev_seq(bus)) {
 		*paddress = pcie->dbi + offset;
 		return 0;
 	}
 
-	busdev = PCIE_ATU_BUS(PCI_BUS(bdf) - bus->seq) |
+	busdev = PCIE_ATU_BUS(PCI_BUS(bdf) - dev_seq(bus)) |
 		 PCIE_ATU_DEV(PCI_DEV(bdf)) |
 		 PCIE_ATU_FUNC(PCI_FUNC(bdf));
 
-	if (PCI_BUS(bdf) == bus->seq + 1) {
+	if (PCI_BUS(bdf) == dev_seq(bus) + 1) {
 		ls_pcie_cfg0_set_busdev(pcie_rc, busdev);
 		*paddress = pcie_rc->cfg0 + offset;
 	} else {
@@ -273,7 +274,8 @@ static int ls_pcie_probe(struct udevice *dev)
 
 	pcie_rc->enabled = is_serdes_configured(PCIE_SRDS_PRTCL(pcie->idx));
 	if (!pcie_rc->enabled) {
-		printf("PCIe%d: %s disabled\n", pcie->idx, dev->name);
+		printf("PCIe%d: %s disabled\n", PCIE_SRDS_PRTCL(pcie->idx),
+		       dev->name);
 		return 0;
 	}
 
@@ -313,6 +315,13 @@ static int ls_pcie_probe(struct udevice *dev)
 		return ret;
 	}
 
+	cfg_size = fdt_resource_size(&pcie_rc->cfg_res);
+	if (cfg_size < SZ_8K) {
+		printf("PCIe%d: %s Invalid size(0x%llx) for resource \"config\",expected minimum 0x%x\n",
+		       PCIE_SRDS_PRTCL(pcie->idx), dev->name, (u64)cfg_size, SZ_8K);
+		return 0;
+	}
+
 	/*
 	 * Fix the pcie memory map address and PF control registers address
 	 * for LS2088A series SoCs
@@ -322,7 +331,6 @@ static int ls_pcie_probe(struct udevice *dev)
 	if (svr == SVR_LS2088A || svr == SVR_LS2084A ||
 	    svr == SVR_LS2048A || svr == SVR_LS2044A ||
 	    svr == SVR_LS2081A || svr == SVR_LS2041A) {
-		cfg_size = fdt_resource_size(&pcie_rc->cfg_res);
 		pcie_rc->cfg_res.start = LS2088A_PCIE1_PHYS_ADDR +
 					 LS2088A_PCIE_PHYS_SIZE * pcie->idx;
 		pcie_rc->cfg_res.end = pcie_rc->cfg_res.start + cfg_size;
@@ -342,7 +350,8 @@ static int ls_pcie_probe(struct udevice *dev)
 	      (unsigned long)pcie->ctrl, (unsigned long)pcie_rc->cfg0,
 	      pcie->big_endian);
 
-	printf("PCIe%u: %s %s", pcie->idx, dev->name, "Root Complex");
+	printf("PCIe%u: %s %s", PCIE_SRDS_PRTCL(pcie->idx), dev->name,
+	       "Root Complex");
 	ls_pcie_setup_ctrl(pcie_rc);
 
 	if (!ls_pcie_link_up(pcie)) {
@@ -375,5 +384,5 @@ U_BOOT_DRIVER(pci_layerscape) = {
 	.of_match = ls_pcie_ids,
 	.ops = &ls_pcie_ops,
 	.probe	= ls_pcie_probe,
-	.priv_auto_alloc_size = sizeof(struct ls_pcie_rc),
+	.priv_auto	= sizeof(struct ls_pcie_rc),
 };

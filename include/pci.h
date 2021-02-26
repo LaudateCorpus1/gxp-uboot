@@ -495,12 +495,18 @@
 #define  PCI_EXP_LNKSTA_DLLLA	0x2000	/* Data Link Layer Link Active */
 #define PCI_EXP_SLTCAP		20	/* Slot Capabilities */
 #define  PCI_EXP_SLTCAP_PSN	0xfff80000 /* Physical Slot Number */
+#define PCI_EXP_DEVCAP2		36	/* Device Capabilities 2 */
+#define  PCI_EXP_DEVCAP2_ARI	0x00000020 /* ARI Forwarding Supported */
+#define PCI_EXP_DEVCTL2		40	/* Device Control 2 */
+#define  PCI_EXP_DEVCTL2_ARI	0x0020 /* Alternative Routing-ID */
+
 #define PCI_EXP_LNKCTL2		48	/* Link Control 2 */
 /* Single Root I/O Virtualization Registers */
 #define PCI_SRIOV_CAP		0x04	/* SR-IOV Capabilities */
 #define PCI_SRIOV_CTRL		0x08	/* SR-IOV Control */
 #define  PCI_SRIOV_CTRL_VFE	0x01	/* VF Enable */
 #define  PCI_SRIOV_CTRL_MSE	0x08	/* VF Memory Space Enable */
+#define  PCI_SRIOV_CTRL_ARI	0x10	/* ARI Capable Hierarchy */
 #define PCI_SRIOV_INITIAL_VF	0x0c	/* Initial VFs */
 #define PCI_SRIOV_TOTAL_VF	0x0e	/* Total VFs */
 #define PCI_SRIOV_NUM_VF	0x10	/* Number of VFs */
@@ -893,11 +899,11 @@ struct udevice;
 
 #ifdef CONFIG_DM_PCI
 /**
- * struct pci_child_platdata - information stored about each PCI device
+ * struct pci_child_plat - information stored about each PCI device
  *
  * Every device on a PCI bus has this per-child data.
  *
- * It can be accessed using dev_get_parent_platdata(dev) if dev->parent is a
+ * It can be accessed using dev_get_parent_plat(dev) if dev->parent is a
  * PCI bus (i.e. UCLASS_PCI)
  *
  * @devfn:	Encoded device and function index - see PCI_DEVFN()
@@ -908,7 +914,7 @@ struct udevice;
  * @pfdev:	Handle to Physical Function device
  * @virtid:	Virtual Function Index
  */
-struct pci_child_platdata {
+struct pci_child_plat {
 	int devfn;
 	unsigned short vendor;
 	unsigned short device;
@@ -928,7 +934,7 @@ struct dm_pci_ops {
 	 * PCI buses must support reading and writing configuration values
 	 * so that the bus can be scanned and its devices configured.
 	 *
-	 * Normally PCI_BUS(@bdf) is the same as @bus->seq, but not always.
+	 * Normally PCI_BUS(@bdf) is the same as @dev_seq(bus), but not always.
 	 * If bridges exist it is possible to use the top-level bus to
 	 * access a sub-bus. In that case @bus will be the top-level bus
 	 * and PCI_BUS(bdf) will be a different (higher) value
