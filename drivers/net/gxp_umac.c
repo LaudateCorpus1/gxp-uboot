@@ -536,7 +536,7 @@ static int init_phy(struct eth_device *dev)
 	return 1;
 }
 
-
+#ifdef CONFIG_GXP_UMAC_G10P
 static int init_phy_gen10p(struct eth_device *dev)
 {
 	struct gxp_umac_private *priv;
@@ -584,6 +584,7 @@ static int init_phy_gen10p(struct eth_device *dev)
 
 	return 1;
 }
+#endif
 
 void gxp_setup_internal_phy(struct eth_device *dev)
 {

@@ -61,30 +61,26 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
     "recover_file=openbmc-hpe-recovery-image.mtd\0" \
-    "recover_cmd=mw.b 0xc0000096 0x0; " \
-    "usb start; " \
-    "sf probe; " \
-    "if fatload usb 0 0x0 $recover_file; then " \
-        "setenv a 0x80000; " \
-        "while itest $a < 0x1ed0000; do " \
-            "mw.b 0xd1000005 0xc0; " \
-        "sf erase $a 0x10000; " \
-        "mw.b 0xd1000005 0x00; " \
-        "sf write $a $a 0x10000; " \
-        "setexpr a $a + 0x10000; " \
-        "done; " \
+    "recover_cmd=usb start; " \
+    "mw.b 0xD100000D 0x40; " \
+    "if fatload usb 0 0x50000000 $recover_file 0x4C0000 0x80000; then " \
+        "setenv bootargs console=ttyS0,115200 recovery; " \
         "setenv force_recovery; " \
         "saveenv; " \
+        "bootm  0x50000000; " \
     "else " \
         "while itest 0 < 1; do " \
             "mw.b 0xd1000005 0xc0; " \
-        "sleep .1; " \
-        "mw.b 0xd1000005 0x00; " \
+            "sleep .1; " \
+            "mw.b 0xd1000005 0x00; " \
             "sleep .1; " \
         "done; " \
     "fi; " \
     "reset;\0" \
-    "spiboot=if printenv force_recovery; then " \
+    "spiboot=if itest.b *0xD10000B2 == 6; then " \
+        "run recover_cmd;" \
+    "fi;" \
+    "if printenv force_recovery; then " \
         "run recover_cmd; " \
     "else " \
         "bootm 0xfc080000; " \
