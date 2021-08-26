@@ -489,6 +489,11 @@ config SYS_I2C_XILINX_XIIC
 	help
 	  Support for Xilinx AXI I2C controller.
 
+config GXP_I2C
+	bool "GXP I2C driver"
+	help
+	  Support for GXP I2C controller.
+
 config SYS_I2C_IHS
         bool "gdsys IHS I2C driver"
         depends on DM_I2C

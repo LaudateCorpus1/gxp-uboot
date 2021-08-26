@@ -632,6 +632,7 @@ static int gxp_umac_ll_register(struct bd_info * bis, struct mii_dev *external_m
 	memset(dev, 0, sizeof *dev);
 	priv = (struct gxp_umac_private *)malloc(sizeof(struct gxp_umac_private));
 	if (NULL == priv) {
+		free(dev);
 		return(0);
 	}
 

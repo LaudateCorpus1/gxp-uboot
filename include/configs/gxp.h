@@ -91,5 +91,7 @@
 /*              Network Configuration             */
 /*--------------------------------------------------------------------------*/
 #define CONFIG_PHY_ADDR             0
+#define CONFIG_SYS_I2C_SPEED            100000
+#define CONFIG_I2C_MULTI_BUS
 
 #endif
