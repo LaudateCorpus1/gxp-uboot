@@ -19,6 +19,8 @@
 #include <netdev.h>
 #endif
 #include <net.h>
+#include <i2c.h>
+
 
 
 #define GXP_USBHC_PHY_PLL_CTRL0				0xc0011000
@@ -122,8 +124,66 @@ static int usb_phy_init(void)
 	return 0;
 }
 
+static int eeprom_addr(unsigned dev_addr, unsigned offset, uchar *addr)
+{
+        unsigned blk_off;
+        int alen;
+
+        blk_off = offset & 0xff;        /* block offset */
+#if CONFIG_SYS_I2C_EEPROM_ADDR_LEN == 1
+        addr[0] = offset >> 8;          /* block number */
+        addr[1] = blk_off;              /* block offset */
+        alen = 2;
+#else
+        addr[0] = offset >> 16;         /* block number */
+        addr[1] = offset >>  8;         /* upper address octet */
+        addr[2] = blk_off;              /* lower address octet */
+        alen = 3;
+#endif  /* CONFIG_SYS_I2C_EEPROM_ADDR_LEN */
+
+        addr[0] |= dev_addr;            /* insert device address */
+
+        return alen;
+}
+
+
+/*
+ * get_eeprom_mac()
+ * This function read the MAC from the eeprom, be sure that the
+ * chip address is correct.
+ */
+
+static int get_eeprom_mac(unsigned char *v_rom_mac, int nic_index)
+{
+        int ret;
+        int  cnt = 6;
+        int i2c_bus = 2;		/* I2C bus for the eeprom */
+        int i2c_addr = 0x50;		/* Address of the eeprom */
+        unsigned offset=0x83;		/* Offset in the eeprom */
+        unsigned alen;
+        uchar addr[3];
+        uint8_t *buffer;
+
+	offset = offset + (6 * nic_index);
+
+        i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+        i2c_set_bus_num(i2c_bus);
+        alen = eeprom_addr(i2c_addr, offset, addr);
+        buffer = (uint8_t*)malloc(cnt);
+        ret = i2c_read(addr[0], offset, alen - 1, buffer, cnt);
+        if (ret) {
+		printf("%s: ret %d read eeprom failure \n", __func__,  ret);
+	} else {
+		memcpy(v_rom_mac, buffer, cnt);
+	}
+	free(buffer);
+        return ret;
+}
+
+
 int board_init(void)
 {
+
 	usb_phy_init();
 
 	return 0;
@@ -138,21 +198,42 @@ int dram_init(void)
 
 int board_eth_init(struct bd_info *bis)
 {
-  struct eth_device *dev;
-  int ret = -EINVAL;
+	struct eth_device *dev;
+	int ret = -EINVAL;
 
 #if defined(CONFIG_GXP_UMAC)
-  ret = gxp_umac_register(bis);
-  if (ret < 1) {
-      printf("%s: gxp_umac_register() failed. ret = %d\n", __func__, ret);
-      return -EINVAL;   // failed
-    }
+	uint8_t v_mac[6];
 
-  dev = eth_get_dev_by_name("GXP_UMAC0");
-  if (!dev) {
-    printf("%s: Unable to get device entry GXP UMAC0\n", __func__);
-    return -EINVAL;
-  }
+	if (!eth_env_get_enetaddr("ethaddr", v_mac)) {
+		/* If the MAC address is not in the environment, get it: */
+		if (get_eeprom_mac(v_mac, 0)) {
+			printf("\n*** ERROR: ethaddr is NOT set !!\n");
+			return -EINVAL;
+		}
+		eth_env_set_enetaddr("ethaddr", v_mac);
+		printf("MAC Address %pM ", v_mac);
+	}
+
+	if (!eth_env_get_enetaddr("eth1addr", v_mac)) {
+		/* If the MAC address is not in the environment, get it: */
+		if (get_eeprom_mac(v_mac, 1)) {
+			printf("\n*** ERROR: ethaddr is NOT set !!\n");
+			return -EINVAL;
+		}
+		eth_env_set_enetaddr("eth1addr", v_mac);
+	}
+
+	ret = gxp_umac_register(bis);
+	if (ret < 1) {
+		printf("%s: gxp_umac_register() failed. ret = %d\n", __func__, ret);
+		return -EINVAL;   // failed
+	}
+
+	dev = eth_get_dev_by_name("GXP_UMAC0");
+	if (!dev) {
+		printf("%s: Unable to get device entry GXP UMAC0\n", __func__);
+		return -EINVAL;
+	}
 #endif
 
   return ret;
