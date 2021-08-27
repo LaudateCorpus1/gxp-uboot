@@ -123,7 +123,6 @@ static int usb_phy_init(void)
 
 	return 0;
 }
-
 static int eeprom_addr(unsigned dev_addr, unsigned offset, uchar *addr)
 {
         unsigned blk_off;
@@ -147,18 +146,34 @@ static int eeprom_addr(unsigned dev_addr, unsigned offset, uchar *addr)
 }
 
 
+static int find_eeprom(uint8_t *i2c_addr) {
+
+	int i2c_bus = 2;			/* I2C bus for the eeprom */
+	int ret;
+	uint8_t addrs[3] = {0x50, 0x54, 0x55};	/* Possible EEPROM addresses */
+
+	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+	i2c_set_bus_num(i2c_bus);
+	for (uint8_t j = 0; j < 3; j++) {
+		ret = i2c_probe(addrs[j]);
+		if (ret == 0) {
+			i2c_addr[0] = addrs[j];
+			break;
+		}
+	}
+	return ret;
+}
+
 /*
  * get_eeprom_mac()
  * This function read the MAC from the eeprom, be sure that the
  * chip address is correct.
  */
 
-static int get_eeprom_mac(unsigned char *v_rom_mac, int nic_index)
+static int get_eeprom_mac(unsigned char *v_rom_mac, uint8_t i2c_addr, uint8_t nic_index)
 {
         int ret;
         int  cnt = 6;
-        int i2c_bus = 2;		/* I2C bus for the eeprom */
-        int i2c_addr = 0x50;		/* Address of the eeprom */
         unsigned offset=0x83;		/* Offset in the eeprom */
         unsigned alen;
         uchar addr[3];
@@ -166,8 +181,6 @@ static int get_eeprom_mac(unsigned char *v_rom_mac, int nic_index)
 
 	offset = offset + (6 * nic_index);
 
-        i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-        i2c_set_bus_num(i2c_bus);
         alen = eeprom_addr(i2c_addr, offset, addr);
         buffer = (uint8_t*)malloc(cnt);
         ret = i2c_read(addr[0], offset, alen - 1, buffer, cnt);
@@ -203,10 +216,16 @@ int board_eth_init(struct bd_info *bis)
 
 #if defined(CONFIG_GXP_UMAC)
 	uint8_t v_mac[6];
+        uint8_t i2c_addr;		/* Address of the eeprom */
+
+	if (find_eeprom(&i2c_addr)) {
+		printf("\n*** EEPROM Chip not found !!\n");
+		return -EINVAL;
+	}
 
 	if (!eth_env_get_enetaddr("ethaddr", v_mac)) {
 		/* If the MAC address is not in the environment, get it: */
-		if (get_eeprom_mac(v_mac, 0)) {
+		if (get_eeprom_mac(v_mac, i2c_addr, 0)) {
 			printf("\n*** ERROR: ethaddr is NOT set !!\n");
 			return -EINVAL;
 		}
@@ -216,7 +235,7 @@ int board_eth_init(struct bd_info *bis)
 
 	if (!eth_env_get_enetaddr("eth1addr", v_mac)) {
 		/* If the MAC address is not in the environment, get it: */
-		if (get_eeprom_mac(v_mac, 1)) {
+		if (get_eeprom_mac(v_mac, i2c_addr, 1)) {
 			printf("\n*** ERROR: ethaddr is NOT set !!\n");
 			return -EINVAL;
 		}
