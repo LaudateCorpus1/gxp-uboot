@@ -146,23 +146,6 @@ static int eeprom_addr(unsigned dev_addr, unsigned offset, uchar *addr)
 }
 
 
-static int find_eeprom(uint8_t *i2c_addr) {
-
-	int i2c_bus = 2;			/* I2C bus for the eeprom */
-	int ret;
-	uint8_t addrs[3] = {0x50, 0x54, 0x55};	/* Possible EEPROM addresses */
-
-	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-	i2c_set_bus_num(i2c_bus);
-	for (uint8_t j = 0; j < 3; j++) {
-		ret = i2c_probe(addrs[j]);
-		if (ret == 0) {
-			i2c_addr[0] = addrs[j];
-			break;
-		}
-	}
-	return ret;
-}
 
 /*
  * get_eeprom_mac()
@@ -193,6 +176,28 @@ static int get_eeprom_mac(unsigned char *v_rom_mac, uint8_t i2c_addr, uint8_t ni
         return ret;
 }
 
+static int find_eeprom(uint8_t *i2c_addr) {
+
+	int i2c_bus = 2;			/* I2C bus for the eeprom */
+	int ret;
+	uint8_t addrs[3] = {0x50, 0x54, 0x55};	/* Possible EEPROM addresses */
+	uint8_t v_mac[6];
+
+
+	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+	i2c_set_bus_num(i2c_bus);
+	for (uint8_t j = 0; j < 3; j++) {
+		ret = i2c_probe(addrs[j]);
+		if (ret == 0) {
+			if (!get_eeprom_mac(v_mac, addrs[j], 0) &&
+			    is_valid_ethaddr(v_mac)) {
+				i2c_addr[0] = addrs[j];
+				break;
+			}
+		}
+	}
+	return ret;
+}
 
 int board_init(void)
 {
