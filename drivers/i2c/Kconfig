@@ -491,6 +491,7 @@ config SYS_I2C_XILINX_XIIC
 
 config GXP_I2C
 	bool "GXP I2C driver"
+	depends on DM_I2C
 	help
 	  Support for GXP I2C controller.
 
