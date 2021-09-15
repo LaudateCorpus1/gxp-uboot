@@ -22,6 +22,9 @@
   aliases {
     serial0 = &uartc;
     spi0 = &spi0;
+    i2c0 = &i2c0;
+    i2c1 = &i2c1;
+    i2c2 = &i2c2;
   };
 
   ahb@80000000 {
@@ -57,9 +60,42 @@
       u-boot,dm-pre-reloc;
     };
 
-    echi0:	ehci@0xcefe0000 {
+    echi0: ehci@0xcefe0000 {
       compatible = "generic-ehci";
       reg = <0xcefe0000 0x100>;
+    };
+
+    i2c0: i2c@c0002000 {
+      compatible = "hpe,gxp-i2c";
+      reg = <0xc0002000 0x70>;
+      clock-frequency = <100000>;
+      status = "okay";
+      #address-cells = <1>;
+      #size-cells = <0>;
+    };
+
+    i2c1: i2c@c0002100 {
+      compatible = "hpe,gxp-i2c";
+      reg = <0xc0002100 0x70>;
+      clock-frequency = <100000>;
+      status = "okay";
+      #address-cells = <1>;
+      #size-cells = <0>;
+    };
+
+    i2c2: i2c@c0002200 {
+      compatible = "hpe,gxp-i2c";
+      reg = <0xc0002200 0x70>;
+      clock-frequency = <100000>;
+      status = "okay";
+      #address-cells = <1>;
+      #size-cells = <0>;
+
+      eeprom_module: eeprom@55 {
+        compatible = "atmel,24c32", "i2c-eeprom";
+        pagesize = <8>;
+        reg = <0x55>;
+      };
     };
   };
 };
